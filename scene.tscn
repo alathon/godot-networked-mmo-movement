@@ -1,0 +1,76 @@
+[gd_scene format=3 uid="uid://gxc0uct42x"]
+
+[ext_resource type="Texture2D" uid="uid://dpa1bc6hme4os" path="res://textures/grass001_albedo_height.png" id="1_nxogm"]
+[ext_resource type="Texture2D" uid="uid://nj4d6up77f7i" path="res://textures/grass001_normal_roughness.png" id="2_3253y"]
+[ext_resource type="PackedScene" uid="uid://hn8q3dj44yod" path="res://player_entity.tscn" id="3_3253y"]
+[ext_resource type="Script" uid="uid://cl2lbdvark513" path="res://scripts/ticker.gd" id="4_u3cyc"]
+[ext_resource type="Script" uid="uid://cnq2s61glph30" path="res://scripts/game_systems.gd" id="5_m7jmp"]
+
+[sub_resource type="Terrain3DMaterial" id="Terrain3DMaterial_u3cyc"]
+_shader_parameters = {
+&"bias_distance": null,
+&"blend_sharpness": null,
+&"depth_blur": null,
+&"flat_terrain_normals": null,
+&"ground_level": null,
+&"mipmap_bias": null,
+&"region_blend": null,
+&"shader_uniforms": null,
+&"shader_uniforms::general": null,
+&"shader_uniforms::mipmaps": null
+}
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_m7jmp"]
+transparency = 4
+cull_mode = 2
+vertex_color_use_as_albedo = true
+backlight_enabled = true
+backlight = Color(0.5, 0.5, 0.5, 1)
+distance_fade_mode = 1
+distance_fade_min_distance = 128.0
+distance_fade_max_distance = 96.0
+metadata/terrain3d_generated_material = true
+
+[sub_resource type="Terrain3DMeshAsset" id="Terrain3DMeshAsset_y2354"]
+generated_type = 1
+height_offset = 0.5
+density = 10.0
+material_override = SubResource("StandardMaterial3D_m7jmp")
+last_lod = 0
+last_shadow_lod = 0
+lod0_range = 128.0
+
+[sub_resource type="Terrain3DTextureAsset" id="Terrain3DTextureAsset_ni31j"]
+name = "grass001_albedo_height"
+albedo_texture = ExtResource("1_nxogm")
+normal_texture = ExtResource("2_3253y")
+
+[sub_resource type="Terrain3DAssets" id="Terrain3DAssets_xlvrw"]
+mesh_list = Array[Terrain3DMeshAsset]([SubResource("Terrain3DMeshAsset_y2354")])
+texture_list = Array[Terrain3DTextureAsset]([SubResource("Terrain3DTextureAsset_ni31j")])
+
+[node name="Node3D" type="Node3D" unique_id=1238542963]
+
+[node name="Terrain3D" type="Terrain3D" parent="." unique_id=327729889]
+data_directory = "res://data"
+material = SubResource("Terrain3DMaterial_u3cyc")
+assets = SubResource("Terrain3DAssets_xlvrw")
+collision_mode = 3
+collision_layer = 2
+displacement_sharpness = 0.5
+top_level = true
+metadata/_edit_lock_ = true
+
+[node name="Ticker" type="Node" parent="." unique_id=1347141368]
+unique_name_in_owner = true
+script = ExtResource("4_u3cyc")
+
+[node name="GameSystems" type="Node" parent="." unique_id=192668155]
+unique_name_in_owner = true
+script = ExtResource("5_m7jmp")
+
+[node name="Entities" type="Node" parent="." unique_id=2012631697]
+unique_name_in_owner = true
+
+[node name="PlayerEntity" parent="Entities" unique_id=1424774371 instance=ExtResource("3_3253y")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.976143, 0.7148186, -40.79889)
