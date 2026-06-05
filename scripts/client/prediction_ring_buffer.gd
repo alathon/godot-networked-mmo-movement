@@ -10,7 +10,7 @@ class Frame:
 	var jump_down = false
 	var predicted_position = Vector3.ZERO
 
-	func write_from_input(input: MovementInputMsg.InputFrame) -> void:
+	func write_from_input(input: MovementInputFrame) -> void:
 		valid = true
 		seq = input.seq
 		input_x = input.input_x
@@ -31,7 +31,7 @@ func _init(size := 30) -> void:
 	for i in _size:
 		_frames[i] = Frame.new()
 
-func store(input: MovementInputMsg.InputFrame) -> Frame:
+func store(input: MovementInputFrame) -> Frame:
 	var seq = input.seq
 	var frame = _frames[_index_for_seq(seq)]
 	frame.write_from_input(input)

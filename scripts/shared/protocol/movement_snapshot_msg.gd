@@ -13,6 +13,9 @@ const QUAT_COMPONENT_LIMIT := 0.7071067811865476
 const QUAT_SCALE := 32767.0 / QUAT_COMPONENT_LIMIT
 const NO_PROCESSED_SEQ := 0xFFFFFFFF
 
+var server_tick = 0
+var entities: Array[EntitySnapshot] = []
+
 class EntitySnapshot:
 	var entity_id = 0
 	var server_tick = 0
@@ -22,8 +25,8 @@ class EntitySnapshot:
 	var rotation = Quaternion.IDENTITY
 	var is_on_floor = false
 
-static func encode(entities: Array, server_tick: int = 0) -> PackedByteArray:
-	var count = mini(entities.size(), 0xFFFF)
+static func encode(entities_: Array, server_tick_: int = 0) -> PackedByteArray:
+	var count = mini(entities_.size(), 0xFFFF)
 	var bytes = PackedByteArray()
 	bytes.resize(HEADER_SIZE + count * ENTITY_SIZE)
 
@@ -31,10 +34,10 @@ static func encode(entities: Array, server_tick: int = 0) -> PackedByteArray:
 	offset = ProtocolUtils.write_u8(bytes, offset, MAGIC)
 	offset = ProtocolUtils.write_u8(bytes, offset, 0)
 	offset = ProtocolUtils.write_u16(bytes, offset, count)
-	offset = ProtocolUtils.write_u32(bytes, offset, server_tick)
+	offset = ProtocolUtils.write_u32(bytes, offset, server_tick_)
 
 	for i in count:
-		var entity: Variant = entities[i]
+		var entity: Variant = entities_[i]
 		var position = ProtocolUtils.quantize_vector3_i32(
 			ProtocolUtils.get_vector3(entity, "position", Vector3.ZERO),
 			POSITION_SCALE
@@ -130,9 +133,6 @@ static func encode_packet(entities: Array, server_tick: int = 0) -> PackedByteAr
 
 static func decode_packet(bytes: PackedByteArray) -> MovementSnapshotMsg:
 	return decode(bytes)
-
-var server_tick = 0
-var entities: Array[EntitySnapshot] = []
 
 static func _write_quaternion(bytes: PackedByteArray, offset: int, value: Quaternion) -> int:
 	var q = value.normalized()

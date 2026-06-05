@@ -1,11 +1,14 @@
 class_name EntitySpawner
 extends Node
 
-const PLAYER_ENTITY = preload("res://scripts/client/player_entity.tscn")
-const REMOTE_ENTITY = preload("res://scripts/client/remote_entity.tscn")
+signal entity_spawned(entity: BaseEntity)
+signal entity_despawned(entity_id: int)
 
 @onready var api: API = %API
 @onready var entities_container: Node = %Entities
+
+const PLAYER_ENTITY = preload("res://scripts/client/player_entity.tscn")
+const REMOTE_ENTITY = preload("res://scripts/client/remote_entity.tscn")
 
 var _local_player_id = -1
 var _local_player: Player
@@ -37,7 +40,7 @@ func _on_entity_lifecycle_received(lifecycle: EntityLifecycleMsg) -> void:
 		spawn_entity(spawn)
 
 func spawn_entity(spawn: EntityLifecycleMsg.SpawnRecord) -> BaseEntity:
-	if spawn.entity_kind != EntityLifecycleMsg.ENTITY_KIND_PLAYER:
+	if spawn.entity_kind != EntityLifecycleMsg.EntityKind.Player:
 		push_warning("Ignoring unknown entity kind in spawn: %d" % spawn.entity_kind)
 		return null
 
@@ -45,7 +48,7 @@ func spawn_entity(spawn: EntityLifecycleMsg.SpawnRecord) -> BaseEntity:
 	if entity_id == _local_player_id:
 		return _spawn_local_player(spawn)
 
-	return _spawn_remote_player(spawn)
+	return _spawn_remote_entity(spawn)
 
 func despawn_entity(entity_id: int) -> void:
 	var player = entities.get(entity_id) as Node
@@ -59,6 +62,7 @@ func despawn_entity(entity_id: int) -> void:
 
 	player.queue_free()
 	print("Despawned entity=%d" % entity_id)
+	entity_despawned.emit(entity_id)
 
 func _set_local_player_id(entity_id: int) -> void:
 	if _local_player_id == entity_id:
@@ -90,9 +94,10 @@ func _spawn_local_player(spawn: EntityLifecycleMsg.SpawnRecord) -> Player:
 	entities[_local_player_id] = player
 
 	print("Spawned local player entity=%d" % _local_player_id)
+	entity_spawned.emit(player)
 	return player
 
-func _spawn_remote_player(spawn: EntityLifecycleMsg.SpawnRecord) -> RemoteEntity:
+func _spawn_remote_entity(spawn: EntityLifecycleMsg.SpawnRecord) -> RemoteEntity:
 	var entity_id = spawn.entity_id
 	var existing = entities.get(entity_id) as RemoteEntity
 	if existing != null:
@@ -108,6 +113,7 @@ func _spawn_remote_player(spawn: EntityLifecycleMsg.SpawnRecord) -> RemoteEntity
 	entities[entity_id] = remote
 
 	print("Spawned remote player entity=%d" % entity_id)
+	entity_spawned.emit(remote)
 	return remote
 
 func _apply_spawn_transform(entity: BaseEntity, spawn: EntityLifecycleMsg.SpawnRecord) -> void:

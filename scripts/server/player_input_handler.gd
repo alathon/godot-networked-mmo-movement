@@ -4,35 +4,37 @@ class PeerBuffer:
 	var peer_id = -1
 	var last_seen_seq = -1
 	var last_processed_seq = -1
-	var last_held_input: MovementInputMsg.InputFrame
+	var last_held_input: MovementInputFrame
+	var synthetic_input: MovementInputFrame
 	var inputs_by_seq: Dictionary = {}
 
 	func _init(p_peer_id: int) -> void:
 		peer_id = p_peer_id
-		last_held_input = MovementInputMsg.empty_input(-1)
+		last_held_input = MovementInputFrame.empty(-1)
+		synthetic_input = MovementInputFrame.empty(-1)
 
 @onready var server_network: Node = %ServerNetwork
 
 var _buffers_by_peer_id: Dictionary = {}
+var _missing_peer_input: MovementInputFrame = MovementInputFrame.empty(-1)
 
 func _ready() -> void:
 	server_network.player_input_received.connect(_on_player_input_received)
 	server_network.player_connected.connect(_on_player_connected)
 	server_network.player_disconnected.connect(_on_player_disconnected)
 
-func get_next_input(peer_id: int) -> MovementInputMsg.InputFrame:
+func get_next_input(peer_id: int) -> MovementInputFrame:
 	var peer_buffer = _get_peer_buffer(peer_id)
 	if peer_buffer == null:
-		return MovementInputMsg.empty_input(-1)
+		return _missing_peer_input
 
 	if not peer_buffer.inputs_by_seq.is_empty():
 		var seq = _get_lowest_buffered_seq(peer_buffer.inputs_by_seq)
-		var input: MovementInputMsg.InputFrame = peer_buffer.inputs_by_seq[seq]
+		var input: MovementInputFrame = peer_buffer.inputs_by_seq[seq]
 		peer_buffer.inputs_by_seq.erase(seq)
-		input.synthetic = false
 		peer_buffer.last_processed_seq = seq
 		peer_buffer.last_held_input = input
-		return input.duplicate_frame()
+		return input
 
 	var synthetic = _make_synthetic_input(peer_buffer)
 	peer_buffer.last_held_input = synthetic
@@ -44,7 +46,7 @@ func get_last_processed_seq(peer_id: int) -> int:
 		return -1
 	return peer_buffer.last_processed_seq
 
-func _on_player_input_received(peer_id: int, input: MovementInputMsg.InputFrame) -> void:
+func _on_player_input_received(peer_id: int, input: MovementInputFrame) -> void:
 	var peer_buffer = _get_peer_buffer(peer_id)
 	if peer_buffer == null:
 		return
@@ -54,7 +56,7 @@ func _on_player_input_received(peer_id: int, input: MovementInputMsg.InputFrame)
 		return
 
 	peer_buffer.last_seen_seq = seq
-	peer_buffer.inputs_by_seq[seq] = input.duplicate_frame()
+	peer_buffer.inputs_by_seq[seq] = input
 
 func _on_player_connected(peer_id: int) -> void:
 	_buffers_by_peer_id[peer_id] = PeerBuffer.new(peer_id)
@@ -75,9 +77,9 @@ func _get_lowest_buffered_seq(buffer: Dictionary) -> int:
 			has_lowest = true
 	return lowest_seq
 
-func _make_synthetic_input(peer_buffer: PeerBuffer) -> MovementInputMsg.InputFrame:
-	var input = peer_buffer.last_held_input.duplicate_frame()
+func _make_synthetic_input(peer_buffer: PeerBuffer) -> MovementInputFrame:
+	var input = peer_buffer.synthetic_input
+	input.copy_from(peer_buffer.last_held_input)
 	input.seq = peer_buffer.last_processed_seq
 	input.jump_pressed = false
-	input.synthetic = true
 	return input

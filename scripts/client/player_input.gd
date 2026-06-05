@@ -9,27 +9,29 @@ var _jump_was_down = false
 var _movement_seq = 0
 var _prediction_buffer = PredictionRingBuffer.new(30)
 var _prediction_frame: Variant = null
+var current_input: MovementInputFrame = MovementInputFrame.new()
 
-func record_input(player: Player) -> MovementInputMsg.InputFrame:
-	var frame = player.gather_input()
-	frame.seq = _movement_seq
+func record() -> void:
+	_write_current_input()
+	current_input.seq = _movement_seq
 	_movement_seq += 1
-	_prediction_frame = _prediction_buffer.store(frame)
-	return frame
+	_prediction_frame = _prediction_buffer.store(current_input)
 
-func flush_prediction_frame() -> Variant:
+func record_predicted_state() -> void:
 	if _prediction_frame == null:
-		return null
+		return
 
 	_prediction_frame.write_predicted_state(body)
-	var previous_frame: Variant = _prediction_buffer.get_previous_frame(_prediction_frame.seq)
 	_prediction_frame = null
+
+func get_previous_input_for_resend() -> Variant:
+	var previous_frame: Variant = _prediction_buffer.get_previous_frame(current_input.seq)
 	return previous_frame
 
 func get_predicted_position(seq: int) -> Variant:
 	return _prediction_buffer.get_predicted_position(seq)
 
-func gather() -> MovementInputMsg.InputFrame:
+func _write_current_input() -> void:
 	var left = _is_pressed(&"move_left", KEY_A)
 	var right = _is_pressed(&"move_right", KEY_D)
 	var forward = _is_pressed(&"move_forward", KEY_W)
@@ -45,14 +47,12 @@ func gather() -> MovementInputMsg.InputFrame:
 		local_input = local_input.normalized()
 
 	var movement = _to_world_movement(local_input)
-	var frame = MovementInputMsg.InputFrame.new()
-	frame.input_x = movement.x
-	frame.input_z = movement.z
-	frame.jump_pressed = jump_down and not _jump_was_down
-	frame.jump_down = jump_down
+	current_input.input_x = movement.x
+	current_input.input_z = movement.z
+	current_input.jump_pressed = jump_down and not _jump_was_down
+	current_input.jump_down = jump_down
 
 	_jump_was_down = jump_down
-	return frame
 
 func _to_world_movement(local_input: Vector2) -> Vector3:
 	if local_input == Vector2.ZERO:

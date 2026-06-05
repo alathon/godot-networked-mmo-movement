@@ -11,3 +11,13 @@ Start-Process godot -WorkingDirectory $ProjectPath -ArgumentList @(
 	"--path", ".",
 	"--scene", "res://scripts/client/client_scene.tscn"
 )
+
+Start-Process godot -WorkingDirectory $ProjectPath -ArgumentList @(
+	"--path", ".",
+	"--scene", "res://scripts/client/client_scene.tscn"
+)
+
+Start-Process godot -WorkingDirectory $ProjectPath -ArgumentList @(
+	"--path", ".",
+	"--scene", "res://scripts/client/client_scene.tscn"
+)

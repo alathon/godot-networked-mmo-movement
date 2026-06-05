@@ -42,7 +42,7 @@ func connect_to_server(host := DEFAULT_SERVER_HOST, port := DEFAULT_SERVER_PORT)
 
 	return OK
 
-func send_player_input(input: MovementInputMsg.InputFrame, previous_frame: Variant = null) -> Error:
+func send_player_input(input: MovementInputFrame, previous_frame: Variant = null) -> Error:
 	var err = connect_to_server()
 	if err != OK:
 		return err

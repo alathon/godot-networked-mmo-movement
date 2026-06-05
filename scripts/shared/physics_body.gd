@@ -7,7 +7,7 @@ extends CharacterBody3D
 var face_angle: float:
 	get: return rotation.y
 
-func simulate(input: MovementInputMsg.InputFrame, delta: float) -> void:
+func simulate(input: MovementInputFrame, delta: float) -> void:
 	velocity += get_gravity() * delta  # always; move_and_slide zeroes it on floor contact
 
 	if input.jump_pressed and is_on_floor():

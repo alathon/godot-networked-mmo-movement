@@ -18,8 +18,5 @@ func get_body():
 func get_player_input() -> PlayerInput:
 	return input
 
-func gather_input() -> MovementInputMsg.InputFrame:
-	return input.gather()
-
-func simulate(input_frame: MovementInputMsg.InputFrame, delta: float) -> void:
+func simulate(input_frame: MovementInputFrame, delta: float) -> void:
 	body.simulate(input_frame, delta)

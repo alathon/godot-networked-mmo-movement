@@ -2,7 +2,7 @@ extends Node
 
 signal player_connected(peer_id: int)
 signal player_disconnected(peer_id: int)
-signal player_input_received(peer_id: int, input: MovementInputMsg.InputFrame)
+signal player_input_received(peer_id: int, input: MovementInputFrame)
 
 const BIND_ADDRESS := "0.0.0.0"
 const PORT := 4242
@@ -72,7 +72,7 @@ func _receive_movement_input(peer: ENetPacketPeer) -> void:
 	for input in msg.inputs:
 		_receive_movement_input_frame(peer_id, input)
 
-func _receive_movement_input_frame(peer_id: int, input: MovementInputMsg.InputFrame) -> void:
+func _receive_movement_input_frame(peer_id: int, input: MovementInputFrame) -> void:
 	player_input_received.emit(peer_id, input)
 
 	print(

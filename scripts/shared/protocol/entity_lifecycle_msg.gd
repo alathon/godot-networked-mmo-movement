@@ -9,12 +9,20 @@ const DESPAWN_RECORD_SIZE := 8
 const FLAG_HAS_CONTROLLED_ENTITY_ID := 1
 
 const NO_ENTITY_ID := 0xFFFFFFFF
-const ENTITY_KIND_PLAYER := 1
 const DESPAWN_REASON_UNKNOWN := 0
+
+enum EntityKind {
+	Player,
+	NPC
+}
+
+var controlled_entity_id = NO_ENTITY_ID
+var entities_spawned: Array[SpawnRecord] = []
+var entities_despawned: Array[DespawnRecord] = []
 
 class SpawnRecord:
 	var entity_id = 0
-	var entity_kind = 1
+	var entity_kind: EntityKind = EntityKind.Player
 	var position = Vector3.ZERO
 	var rotation = Quaternion.IDENTITY
 
@@ -23,13 +31,13 @@ class DespawnRecord:
 	var reason = 0
 
 static func encode(
-	entities_spawned: Array,
-	entities_despawned: Array,
-	controlled_entity_id: int = NO_ENTITY_ID
+	entities_spawned_: Array,
+	entities_despawned_: Array,
+	controlled_entity_id_: int = NO_ENTITY_ID
 ) -> PackedByteArray:
-	var spawned_count = mini(entities_spawned.size(), 0xFFFF)
-	var despawned_count = mini(entities_despawned.size(), 0xFFFF)
-	var flags = FLAG_HAS_CONTROLLED_ENTITY_ID if controlled_entity_id != NO_ENTITY_ID else 0
+	var spawned_count = mini(entities_spawned_.size(), 0xFFFF)
+	var despawned_count = mini(entities_despawned_.size(), 0xFFFF)
+	var flags = FLAG_HAS_CONTROLLED_ENTITY_ID if controlled_entity_id_ != NO_ENTITY_ID else 0
 
 	var bytes = PackedByteArray()
 	bytes.resize(HEADER_SIZE + spawned_count * SPAWN_RECORD_SIZE + despawned_count * DESPAWN_RECORD_SIZE)
@@ -39,13 +47,13 @@ static func encode(
 	offset = ProtocolUtils.write_u8(bytes, offset, flags)
 	offset = ProtocolUtils.write_u16(bytes, offset, spawned_count)
 	offset = ProtocolUtils.write_u16(bytes, offset, despawned_count)
-	offset = ProtocolUtils.write_u32(bytes, offset, controlled_entity_id)
+	offset = ProtocolUtils.write_u32(bytes, offset, controlled_entity_id_)
 
 	for i in spawned_count:
-		offset = _write_spawn_record(bytes, offset, entities_spawned[i])
+		offset = _write_spawn_record(bytes, offset, entities_spawned_[i])
 
 	for i in despawned_count:
-		offset = _write_despawn_record(bytes, offset, entities_despawned[i])
+		offset = _write_despawn_record(bytes, offset, entities_despawned_[i])
 
 	return bytes
 
@@ -65,18 +73,18 @@ static func decode(bytes: PackedByteArray) -> EntityLifecycleMsg:
 	offset += 2
 	var despawned_count = ProtocolUtils.read_u16(bytes, offset)
 	offset += 2
-	var controlled_entity_id = ProtocolUtils.read_u32(bytes, offset)
+	var controlled_eid = ProtocolUtils.read_u32(bytes, offset)
 	offset += 4
 
 	if not bool(flags & FLAG_HAS_CONTROLLED_ENTITY_ID):
-		controlled_entity_id = NO_ENTITY_ID
+		controlled_eid = NO_ENTITY_ID
 
 	var expected_size = HEADER_SIZE + spawned_count * SPAWN_RECORD_SIZE + despawned_count * DESPAWN_RECORD_SIZE
 	if bytes.size() < expected_size:
 		return empty()
 
 	var msg = EntityLifecycleMsg.new()
-	msg.controlled_entity_id = controlled_entity_id
+	msg.controlled_entity_id = controlled_eid
 	msg.entities_spawned.resize(spawned_count)
 	for i in spawned_count:
 		var result = _read_spawn_record(bytes, offset)
@@ -92,21 +100,17 @@ static func decode(bytes: PackedByteArray) -> EntityLifecycleMsg:
 	return msg
 
 static func encode_packet(
-	entities_spawned: Array,
-	entities_despawned: Array,
-	controlled_entity_id: int = NO_ENTITY_ID
+	entities_spawned_: Array,
+	entities_despawned_: Array,
+	controlled_entity_id_: int = NO_ENTITY_ID
 ) -> PackedByteArray:
-	return encode(entities_spawned, entities_despawned, controlled_entity_id)
+	return encode(entities_spawned_, entities_despawned_, controlled_entity_id_)
 
 static func decode_packet(bytes: PackedByteArray) -> EntityLifecycleMsg:
 	return decode(bytes)
 
 static func empty() -> EntityLifecycleMsg:
 	return EntityLifecycleMsg.new()
-
-var controlled_entity_id = NO_ENTITY_ID
-var entities_spawned: Array[SpawnRecord] = []
-var entities_despawned: Array[DespawnRecord] = []
 
 static func _write_spawn_record(bytes: PackedByteArray, offset: int, entity: Variant) -> int:
 	var position = ProtocolUtils.get_vector3(entity, "position", Vector3.ZERO)
@@ -118,7 +122,7 @@ static func _write_spawn_record(bytes: PackedByteArray, offset: int, entity: Var
 	offset = ProtocolUtils.write_u8(
 		bytes,
 		offset,
-		ProtocolUtils.get_int(entity, "entity_kind", ENTITY_KIND_PLAYER)
+		ProtocolUtils.get_int(entity, "entity_kind", EntityKind.Player)
 	)
 	offset = ProtocolUtils.write_u8(bytes, offset, 0)
 	offset = ProtocolUtils.write_u16(bytes, offset, 0)

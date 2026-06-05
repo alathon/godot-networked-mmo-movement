@@ -2,32 +2,32 @@ extends Node
 
 @onready var ticker: Ticker = %Ticker
 @onready var api: API = $API
-@onready var player_spawner: EntitySpawner = $EntitySpawner
+@onready var entity_spawner: EntitySpawner = $EntitySpawner
 
 func _ready() -> void:
 	ticker.tick.connect(_on_tick)
 	api.movement_snapshot_received.connect(_on_movement_snapshot_received)
 
 func _on_tick(_n: int, delta: float) -> void:
-	var player: Player = player_spawner.get_local_player()
+	var player: Player = entity_spawner.get_local_player()
 	if player == null:
 		return
 
 	var player_input: PlayerInput = player.get_player_input()
-	var input: MovementInputMsg.InputFrame = player_input.record_input(player)
-	player.simulate(input, delta)
-	send_input_to_server(input, player_input)
-
-func send_input_to_server(input: MovementInputMsg.InputFrame, player_input: PlayerInput) -> void:
-	var previous_frame: Variant = player_input.flush_prediction_frame()
-	api.send_player_input(input, previous_frame)
+	player_input.record()
+	player.simulate(player_input.current_input, delta)
+	player_input.record_predicted_state()
+	api.send_player_input(
+		player_input.current_input,
+		player_input.get_previous_input_for_resend()
+	)
 
 func _on_movement_snapshot_received(msg: MovementSnapshotMsg) -> void:
 	for snapshot in msg.entities:
 		var entity_id = snapshot.entity_id
 
-		if entity_id != player_spawner.local_entity_id:
-			var remote = player_spawner.get_player(entity_id) as RemoteEntity
+		if entity_id != entity_spawner.local_entity_id:
+			var remote = entity_spawner.get_player(entity_id) as RemoteEntity
 			if remote != null:
 				remote.push_movement_snapshot(snapshot)
 			continue
@@ -36,7 +36,7 @@ func _on_movement_snapshot_received(msg: MovementSnapshotMsg) -> void:
 		if seq == MovementSnapshotMsg.NO_PROCESSED_SEQ:
 			continue
 
-		var player = player_spawner.get_local_player()
+		var player = entity_spawner.get_local_player()
 		if player == null:
 			continue
 

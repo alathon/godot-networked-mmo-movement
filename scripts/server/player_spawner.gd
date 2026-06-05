@@ -75,7 +75,7 @@ func _make_spawn_record(player: ServerPlayerEntity) -> EntityLifecycleMsg.SpawnR
 	var body: PhysicsBody = player.get_body()
 	var spawn = EntityLifecycleMsg.SpawnRecord.new()
 	spawn.entity_id = player.entity_id
-	spawn.entity_kind = EntityLifecycleMsg.ENTITY_KIND_PLAYER
+	spawn.entity_kind = EntityLifecycleMsg.EntityKind.Player
 	spawn.position = body.global_position
 	spawn.rotation = body.global_transform.basis.get_rotation_quaternion()
 	return spawn

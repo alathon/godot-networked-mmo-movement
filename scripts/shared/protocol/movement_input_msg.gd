@@ -11,24 +11,6 @@ const FRAME_FLAG_JUMP_PRESSED := 1
 const FRAME_FLAG_JUMP_DOWN := 2
 const AXIS_SCALE := 32767.0
 
-class InputFrame:
-	var seq = 0
-	var input_x = 0.0
-	var input_z = 0.0
-	var jump_pressed = false
-	var jump_down = false
-	var synthetic = false
-
-	func duplicate_frame() -> InputFrame:
-		var frame = InputFrame.new()
-		frame.seq = seq
-		frame.input_x = input_x
-		frame.input_z = input_z
-		frame.jump_pressed = jump_pressed
-		frame.jump_down = jump_down
-		frame.synthetic = synthetic
-		return frame
-
 static func encode(current_input: Variant, previous_input: Variant = null) -> PackedByteArray:
 	var packet_flags = FLAG_HAS_CURRENT
 	if previous_input != null:
@@ -85,13 +67,7 @@ static func encode_packet(current_input: Variant, previous_input: Variant = null
 static func decode_packet(bytes: PackedByteArray) -> MovementInputMsg:
 	return decode(bytes)
 
-static func empty_input(seq: int) -> InputFrame:
-	var frame = InputFrame.new()
-	frame.seq = seq
-	frame.synthetic = true
-	return frame
-
-var inputs: Array[InputFrame] = []
+var inputs: Array[MovementInputFrame] = []
 
 static func _write_frame(bytes: PackedByteArray, offset: int, input: Variant) -> int:
 	offset = ProtocolUtils.write_u32(bytes, offset, ProtocolUtils.get_int(input, "seq", 0))
@@ -113,8 +89,8 @@ static func _write_frame(bytes: PackedByteArray, offset: int, input: Variant) ->
 		flags |= FRAME_FLAG_JUMP_DOWN
 	return ProtocolUtils.write_u8(bytes, offset, flags)
 
-static func _read_frame(bytes: PackedByteArray, offset: int) -> InputFrame:
-	var frame = InputFrame.new()
+static func _read_frame(bytes: PackedByteArray, offset: int) -> MovementInputFrame:
+	var frame = MovementInputFrame.new()
 	frame.seq = ProtocolUtils.read_u32(bytes, offset)
 	offset += 4
 	frame.input_x = ProtocolUtils.dequantize_float(ProtocolUtils.read_i16(bytes, offset), AXIS_SCALE)
