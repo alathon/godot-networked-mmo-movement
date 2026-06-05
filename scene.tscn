@@ -49,13 +49,15 @@ normal_texture = ExtResource("2_3253y")
 mesh_list = Array[Terrain3DMeshAsset]([SubResource("Terrain3DMeshAsset_y2354")])
 texture_list = Array[Terrain3DTextureAsset]([SubResource("Terrain3DTextureAsset_ni31j")])
 
+[sub_resource type="Environment" id="Environment_m7jmp"]
+
 [node name="Node3D" type="Node3D" unique_id=1238542963]
 
 [node name="Terrain3D" type="Terrain3D" parent="." unique_id=327729889]
 data_directory = "res://data"
 material = SubResource("Terrain3DMaterial_u3cyc")
 assets = SubResource("Terrain3DAssets_xlvrw")
-collision_mode = 3
+collision_mode = 4
 collision_layer = 2
 displacement_sharpness = 0.5
 top_level = true
@@ -74,3 +76,9 @@ unique_name_in_owner = true
 
 [node name="PlayerEntity" parent="Entities" unique_id=1424774371 instance=ExtResource("3_3253y")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.976143, 0.7148186, -40.79889)
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1496765935]
+environment = SubResource("Environment_m7jmp")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1442855236]
+transform = Transform3D(1, 0, 0, 0, 0.29914066, 0.954209, 0, -0.954209, 0.29914066, 0, 84.93894, 0)

@@ -41,12 +41,17 @@ var _right_dragging: bool = false
 
 
 func _ready() -> void:
+	var start_transform := global_transform
+	top_level = true
+	global_transform = start_transform
+
 	rotation.x = clampf(deg_to_rad(camera_default_pitch_degrees), -tilt_limit, tilt_limit)
 	_spring_arm_target_length = clampf(camera_default_distance, camera_distance_min, camera_distance_max)
 	_spring_arm.spring_length = _spring_arm_target_length
 	_spring_arm.add_excluded_object(body)
 	
-	rotation.y = model.rotation.y
+	if model != null:
+		rotation.y = model.global_rotation.y
 	if model != null:
 		var pos: Vector3 = model.global_position
 		global_position.x = pos.x + offset.x

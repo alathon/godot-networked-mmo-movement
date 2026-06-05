@@ -1,9 +1,5 @@
-extends StaticBody3D
+extends Node
 
-# TODO: Interpolation buffer, and do smooth movement in _process interpolating between snapshots.
-
-func simulate_remote_tick(delta: float) -> void:
-	pass
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
