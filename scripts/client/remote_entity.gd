@@ -1,15 +1,20 @@
-extends StaticBody3D
+class_name RemoteEntity
+extends BaseEntity
 
-# TODO: Interpolation buffer, and do smooth movement in _process interpolating between snapshots.
+@onready var body: RemoteBody = %Body
+@onready var model: Node3D = %Model
 
-func simulate_remote_tick(delta: float) -> void:
-	pass
+func get_rid() -> RID:
+	return body.get_rid()
 
-# Called when the node enters the scene tree for the first time.
-func _ready() -> void:
-	pass # Replace with function body.
+func is_alive():
+	return true
 
+func get_body():
+	return body
 
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
+func simulate(delta: float) -> void:
+	simulate_remote_tick(delta)
+
+func simulate_remote_tick(_delta: float) -> void:
 	pass

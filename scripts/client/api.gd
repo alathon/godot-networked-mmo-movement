@@ -1,24 +1,29 @@
 class_name API
 extends Node
 
-const MovementProto = preload("res://scripts/shared/movement_pb.gd")
+const MovementInputCodecScript = preload("res://scripts/shared/movement_input_codec.gd")
+const MovementSnapshotCodecScript = preload("res://scripts/shared/movement_snapshot_codec.gd")
+
+signal local_entity_id_received(entity_id: int)
+signal movement_snapshot_received(entities: Array[Dictionary])
 
 const DEFAULT_SERVER_HOST := "127.0.0.1"
 const DEFAULT_SERVER_PORT := 4242
 const CHANNEL_MOVEMENT := 0
 const CHANNEL_MOVEMENT_SNAPSHOT := 1
-const CHANNEL_COUNT := 2
+const CHANNEL_IDENTITY := 2
+const CHANNEL_COUNT := 3
 
-static var _connection: ENetConnection
-static var _server_peer: ENetPacketPeer
+var _connection: ENetConnection
+var _server_peer: ENetPacketPeer
 
 func _ready() -> void:
-	API.connect_to_server()
+	connect_to_server()
 
 func _process(_delta: float) -> void:
-	API.poll()
+	poll()
 
-static func connect_to_server(host := DEFAULT_SERVER_HOST, port := DEFAULT_SERVER_PORT) -> Error:
+func connect_to_server(host := DEFAULT_SERVER_HOST, port := DEFAULT_SERVER_PORT) -> Error:
 	if _server_peer != null and _server_peer.get_state() != ENetPacketPeer.STATE_DISCONNECTED:
 		return OK
 
@@ -37,7 +42,7 @@ static func connect_to_server(host := DEFAULT_SERVER_HOST, port := DEFAULT_SERVE
 
 	return OK
 
-static func send_player_input(input: Dictionary, previous_frame = null) -> Error:
+func send_player_input(input: Dictionary, previous_frame = null) -> Error:
 	var err := connect_to_server()
 	if err != OK:
 		return err
@@ -46,21 +51,10 @@ static func send_player_input(input: Dictionary, previous_frame = null) -> Error
 	if _server_peer.get_state() != ENetPacketPeer.STATE_CONNECTED:
 		return ERR_BUSY
 
-	var message := MovementProto.MovementInputPacket.new()
-	if previous_frame != null:
-		previous_frame.write_to_message(message.new_previous_input())
-	_write_input_to_message(input, message.new_current_input())
+	var bytes := MovementInputCodecScript.encode_packet(input, previous_frame)
+	return _server_peer.send(CHANNEL_MOVEMENT, bytes, ENetPacketPeer.FLAG_UNSEQUENCED)
 
-	return _server_peer.send(CHANNEL_MOVEMENT, message.to_bytes(), ENetPacketPeer.FLAG_UNSEQUENCED)
-
-static func _write_input_to_message(input: Dictionary, message) -> void:
-	message.set_seq(int(input.get("seq", 0)))
-	message.set_input_x(float(input.get("input_x", 0.0)))
-	message.set_input_z(float(input.get("input_z", 0.0)))
-	message.set_jump_pressed(bool(input.get("jump_pressed", false)))
-	message.set_jump_down(bool(input.get("jump_down", false)))
-
-static func poll() -> void:
+func poll() -> void:
 	if _connection == null:
 		return
 
@@ -82,10 +76,37 @@ static func poll() -> void:
 				return
 			ENetConnection.EVENT_RECEIVE:
 				var peer: ENetPacketPeer = event[1]
-				peer.get_packet()
+				var channel: int = event[3]
+				if channel == CHANNEL_MOVEMENT_SNAPSHOT:
+					_receive_movement_snapshot(peer.get_packet())
+				elif channel == CHANNEL_IDENTITY:
+					_receive_local_entity_id(peer.get_packet())
+				else:
+					peer.get_packet()
 
-static func _disconnect() -> void:
+func _disconnect() -> void:
 	if _connection != null:
 		_connection.destroy()
 	_connection = null
 	_server_peer = null
+
+func _receive_movement_snapshot(bytes: PackedByteArray) -> void:
+	var entities := MovementSnapshotCodecScript.decode_packet(bytes)
+	if entities.is_empty():
+		return
+
+	movement_snapshot_received.emit(entities)
+
+func _receive_local_entity_id(bytes: PackedByteArray) -> void:
+	if bytes.size() < 4:
+		return
+
+	local_entity_id_received.emit(_read_u32(bytes, 0))
+
+func _read_u32(bytes: PackedByteArray, offset: int) -> int:
+	return (
+		bytes[offset]
+		| (bytes[offset + 1] << 8)
+		| (bytes[offset + 2] << 16)
+		| (bytes[offset + 3] << 24)
+	)

@@ -5,7 +5,7 @@
 [ext_resource type="Script" uid="uid://cl2lbdvark513" path="res://scripts/shared/ticker.gd" id="3_1b1h4"]
 [ext_resource type="Script" uid="uid://cnq2s61glph30" path="res://scripts/client/game_systems.gd" id="4_1dmei"]
 [ext_resource type="Script" uid="uid://dtmvbbgw50v4a" path="res://scripts/client/api.gd" id="5_4drak"]
-[ext_resource type="PackedScene" uid="uid://hn8q3dj44yod" path="res://player_entity.tscn" id="6_kmjl6"]
+[ext_resource type="Script" uid="uid://by42n0xut2t6e" path="res://scripts/client/player_spawner.gd" id="6_v2s3j"]
 
 [sub_resource type="Terrain3DMaterial" id="Terrain3DMaterial_u3cyc"]
 _shader_parameters = {
@@ -75,14 +75,18 @@ script = ExtResource("4_1dmei")
 [node name="API" type="Node" parent="GameSystems" unique_id=1462841541]
 script = ExtResource("5_4drak")
 
+[node name="PlayerSpawner" type="Node" parent="GameSystems" unique_id=145268821]
+script = ExtResource("6_v2s3j")
+
 [node name="Entities" type="Node" parent="." unique_id=2012631697]
 unique_name_in_owner = true
-
-[node name="PlayerEntity" parent="Entities" unique_id=1424774371 instance=ExtResource("6_kmjl6")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.976143, 0.7148186, -40.79889)
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1496765935]
 environment = SubResource("Environment_m7jmp")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1442855236]
 transform = Transform3D(1, 0, 0, 0, 0.29914066, 0.954209, 0, -0.954209, 0.29914066, 0, 84.93894, 0)
+
+[node name="BootstrapCamera3D" type="Camera3D" parent="." unique_id=1335517837]
+transform = Transform3D(0.70710677, -0.40824828, 0.57735026, 0, 0.81649655, 0.57735026, -0.70710677, -0.40824828, 0.57735026, -45, 18, -45)
+current = true

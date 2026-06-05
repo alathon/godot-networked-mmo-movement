@@ -2,11 +2,21 @@
 
 ## Goals
 
-- Remove the artificial "client runs N ticks ahead of server" latency.
 - Keep the server authoritative.
 - Preserve smooth local movement through client prediction.
 - Avoid server rollback for movement.
-- Allow movement and abilities to use different transports.
+- Keep the movement testbed extremely small and debuggable.
+- Allow movement and abilities to use different transports later.
+
+---
+
+# Tick Rate
+
+Client and server both run movement simulation at 50ms ticks.
+
+No global tick synchronization is required.
+
+Movement ordering is based on client-authored movement sequence numbers, not shared tick numbers.
 
 ---
 
@@ -14,17 +24,30 @@
 
 ## Client
 
-The client runs movement simulation at 50ms ticks. Each movement tick generates a movement input frame with a monotonically increasing sequence number (`seq`).
+Each client movement tick generates a movement input frame with a monotonically increasing sequence number (`seq`).
 
-Input frames are sent over UDP and include several previous frames for redundancy.
+The client decides the sequence number.
 
 ### Input Frame
 
 ```text
 seq
-movement state (forward/back/strafe/etc.)
-edge inputs (jump pressed, jump released, etc.)
+movement held state (input_x, input_z, jump_down, etc.)
+edge inputs (jump_pressed, etc.)
 ```
+
+The client immediately simulates local movement with this input.
+
+Input is sent to the server over UDP ENet using the shared binary movement input codec.
+
+For redundancy, each movement packet contains:
+
+```text
+previous_input
+current_input
+```
+
+The previous input is processed before the current input when received.
 
 ---
 
@@ -32,23 +55,66 @@ edge inputs (jump pressed, jump released, etc.)
 
 The server maintains a per-player movement input buffer keyed by sequence number.
 
-Movement frames are processed strictly in sequence order. The server processes at most one movement frame per player per server tick.
+The server accepts a movement input only if:
 
-Late movement frames for already-processed sequence numbers are discarded.
+```text
+input.seq > last_seen_seq
+```
+
+This means duplicate packets, reordered older packets, and late packets with sequence numbers lower than or equal to the latest accepted input are discarded.
+
+Accepted inputs are stored in the player's movement input buffer.
+
+On each server tick, the server processes at most one movement input per player:
+
+1. If any buffered input exists, process the lowest buffered sequence number.
+2. If no buffered input exists, synthesize movement from the last held input state.
+
+The server does **not** wait for missing sequence numbers.
+
+Example:
+
+```text
+last_seen_seq = 10
+seq 11 is lost
+seq 12 arrives
+server accepts 12
+server may process 12 as the next real authoritative input
+```
+
+No server rollback is performed if a missing or older input arrives later.
 
 ---
 
-## Missing Input Handling
+# Missing Input Handling
 
-If the next expected movement sequence is unavailable:
+If no newer client input is buffered for a player on a server tick:
 
 - Repeat the last known held movement state.
 - Do not repeat edge-triggered actions.
 - Mark the frame as synthetic.
+- Do not advance the client movement sequence number.
 
-Synthetic frames become authoritative once simulated.
+Synthetic input is server-side filler only. It does not claim that the client sent a new movement sequence.
 
-No server rollback is performed when the real input later arrives.
+Synthetic movement becomes authoritative once simulated.
+
+---
+
+# Server Tick Order
+
+The server runs systems in phases rather than fully updating one entity at a time.
+
+Current movement tick order:
+
+```text
+gather player inputs into tick context
+apply movement for all players
+run other systems placeholder
+broadcast movement snapshot
+```
+
+The tick context is a per-peer scratchpad used by server systems during one tick.
 
 ---
 
@@ -58,46 +124,108 @@ No server rollback is performed when the real input later arrives.
 
 The client immediately simulates local movement using its own input.
 
-Unacknowledged movement frames are stored in a prediction buffer.
+Unacknowledged movement frames are stored in a fixed-size prediction ring buffer.
 
-### Prediction Buffer
+The current ring buffer stores:
 
 ```text
 seq
-input
+input state
+predicted position for debug/reconciliation
 ```
+
+The current ring size is 30.
 
 ---
 
 ## Reconciliation
 
-Server movement snapshots include the last processed movement sequence.
+Movement snapshots include `last_processed_movement_seq`.
 
-When a snapshot is received:
+This is the acknowledgement for client prediction.
 
-1. Restore the authoritative state.
-2. Remove acknowledged inputs.
-3. Replay remaining buffered inputs.
-4. Continue prediction.
+Full reconciliation is not implemented yet. The intended flow is:
+
+1. Receive authoritative movement snapshot.
+2. Read `last_processed_movement_seq`.
+3. Remove or ignore acknowledged prediction frames.
+4. Restore authoritative movement state if the correction is meaningful.
+5. Replay remaining buffered inputs after the acknowledged sequence.
+6. Continue prediction.
+
+Current debug behavior:
+
+```text
+client compares predicted position at last_processed_movement_seq
+against server authoritative position
+logs the diff if it is >= 0.01m
+```
 
 ---
 
 # Authoritative Movement State
 
-Movement corrections contain enough state to reproduce movement accurately.
+Authoritative movement state must contain enough data to reproduce movement accurately.
 
-### State
+Current server movement snapshots include:
 
 ```text
+entity_id
+last_processed_movement_seq
 position
 velocity
-grounded state
-movement mode
-other movement-relevant state
-last_processed_seq
+rotation
+is_on_floor
 ```
 
 Position alone is insufficient.
+
+Future movement state may need additional fields such as:
+
+```text
+movement mode
+other movement-relevant state
+```
+
+---
+
+# Movement Snapshot Encoding
+
+Movement snapshots are sent server-to-client over UDP ENet.
+
+Snapshots use a custom binary codec, not protobuf, because they are sent frequently.
+
+Current snapshot encoding:
+
+```text
+packet header
+entity records
+```
+
+Each entity record contains:
+
+```text
+u32 entity_id
+u32 last_processed_movement_seq
+i32 quantized_position_x
+i32 quantized_position_y
+i32 quantized_position_z
+i16 quantized_velocity_x
+i16 quantized_velocity_y
+i16 quantized_velocity_z
+quantized smallest-three quaternion rotation
+u8 flags
+```
+
+Current entity record size is 34 bytes, plus a 4-byte packet header.
+
+Current quantization:
+
+```text
+position: millimeters
+velocity: centimeters per second
+rotation: smallest-three quantized quaternion
+```
 
 ---
 
@@ -105,42 +233,31 @@ Position alone is insufficient.
 
 Remote players are not predicted.
 
-Clients interpolate between authoritative snapshots.
+Clients should interpolate remote players between authoritative snapshots.
 
-Optional short-duration extrapolation (dead reckoning) may be used when updates are temporarily missing.
+Optional short-duration extrapolation may be used when updates are temporarily missing.
+
+Remote player spawning, removal, interpolation, and extrapolation are not implemented yet.
 
 ---
 
 # Abilities
 
-## Transport
+Abilities are not implemented yet.
 
-Abilities are sent over a reliable ordered channel (TCP or equivalent).
-
-Each ability command has a unique command identifier.
-
-### Ability Command
+The intended direction is still:
 
 ```text
-command_id
-ability_id
+reliable ordered transport
+unique command id
+ability id
 target information
 movement_seq_anchor
 ```
 
----
+Every ability should reference the most recent movement sequence known to the client when the ability was issued.
 
-## Movement Anchoring
-
-Every ability references the most recent movement sequence known to the client when the ability was issued.
-
-The server does not evaluate the ability until the referenced movement sequence has become authoritative.
-
-This ensures abilities execute from the expected authoritative movement state.
-
----
-
-## Ability Validation
+The server should not evaluate the ability until the referenced movement sequence has become authoritative.
 
 The server validates:
 
@@ -156,31 +273,6 @@ The server remains fully authoritative over ability outcomes.
 
 ---
 
-# Server Tick
-
-## Fixed Tick Rate
-
-Client and server both run at 50ms ticks.
-
-No global tick synchronization is required.
-
-Movement ordering is based on movement sequence numbers rather than shared tick numbers.
-
----
-
-# Snapshot Contents
-
-Movement snapshots include:
-
-```text
-authoritative movement state
-last_processed_movement_seq
-```
-
-Combat snapshots include any additional authoritative combat state as required.
-
----
-
 # Rollback Policy
 
 ## Client
@@ -191,8 +283,21 @@ Client-side replay and reconciliation are allowed.
 
 No movement rollback is performed.
 
-Once a movement frame (real or synthetic) has been simulated, it becomes authoritative.
+Once a real or synthetic movement frame has been simulated, that movement becomes authoritative.
 
-Late-arriving movement input is discarded.
+Older or duplicate movement input is discarded.
 
 This keeps the server simple, deterministic, and scalable.
+
+---
+
+# Current Missing Pieces
+
+- Real client identity/entity-id assignment.
+- Client reconciliation beyond debug diff logging.
+- Remote player spawn/update/remove.
+- Remote interpolation and optional extrapolation.
+- Full authoritative movement state if movement grows beyond position/velocity/rotation/grounded.
+- Ability transport, anchoring, validation, and combat snapshots.
+- Snapshot interest management and per-client filtering.
+- Automated tests for input buffering, prediction ring wraparound, snapshot codec, and reconciliation.

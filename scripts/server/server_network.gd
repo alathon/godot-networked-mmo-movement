@@ -1,6 +1,6 @@
 extends Node
 
-const MovementProto = preload("res://scripts/shared/movement_pb.gd")
+const MovementInputCodecScript = preload("res://scripts/shared/movement_input_codec.gd")
 
 signal player_connected(peer_id: int)
 signal player_disconnected(peer_id: int)
@@ -10,13 +10,15 @@ const BIND_ADDRESS := "0.0.0.0"
 const PORT := 4242
 const CHANNEL_MOVEMENT := 0
 const CHANNEL_MOVEMENT_SNAPSHOT := 1
+const CHANNEL_IDENTITY := 2
 const MAX_PEERS := 32
-const CHANNEL_COUNT := 2
+const CHANNEL_COUNT := 3
 
 var _connection := ENetConnection.new()
 var _peer_ids: Dictionary = {}
 var _peers_by_id: Dictionary = {}
 var _next_peer_id := 1
+var _is_listening := false
 
 func _ready() -> void:
 	var err := _connection.create_host_bound(BIND_ADDRESS, PORT, MAX_PEERS, CHANNEL_COUNT)
@@ -24,9 +26,13 @@ func _ready() -> void:
 		push_error("Server ENet bind failed on %s:%d: %s" % [BIND_ADDRESS, PORT, error_string(err)])
 		return
 
+	_is_listening = true
 	print("Server listening on %s:%d" % [BIND_ADDRESS, PORT])
 
 func _process(_delta: float) -> void:
+	if not _is_listening:
+		return
+
 	_poll_network()
 
 func _poll_network() -> void:
@@ -58,27 +64,16 @@ func _poll_network() -> void:
 					_receive_movement_input(peer)
 
 func _receive_movement_input(peer: ENetPacketPeer) -> void:
-	var message := MovementProto.MovementInputPacket.new()
-	var result: int = message.from_bytes(peer.get_packet())
-	if result != MovementProto.PB_ERR.NO_ERRORS:
-		push_warning("Dropped malformed MovementInputPacket packet: %s" % result)
+	var inputs := MovementInputCodecScript.decode_packet(peer.get_packet())
+	if inputs.is_empty():
+		push_warning("Dropped malformed movement input packet")
 		return
 
 	var peer_id := _get_peer_id(peer)
-	if message.has_previous_input():
-		_receive_movement_input_frame(peer_id, message.get_previous_input())
-	if message.has_current_input():
-		_receive_movement_input_frame(peer_id, message.get_current_input())
+	for input in inputs:
+		_receive_movement_input_frame(peer_id, input)
 
-func _receive_movement_input_frame(peer_id: int, message) -> void:
-	var input := {
-		"seq": message.get_seq(),
-		"input_x": message.get_input_x(),
-		"input_z": message.get_input_z(),
-		"jump_pressed": message.get_jump_pressed(),
-		"jump_down": message.get_jump_down(),
-	}
-
+func _receive_movement_input_frame(peer_id: int, input: Dictionary) -> void:
 	player_input_received.emit(peer_id, input)
 
 	print(
@@ -106,10 +101,30 @@ func broadcast_movement_snapshot(bytes: PackedByteArray) -> void:
 		var packet_peer := peer as ENetPacketPeer
 		if packet_peer == null:
 			continue
+		if packet_peer.get_state() != ENetPacketPeer.STATE_CONNECTED:
+			continue
 		packet_peer.send(CHANNEL_MOVEMENT_SNAPSHOT, bytes, ENetPacketPeer.FLAG_UNSEQUENCED)
+
+func send_local_entity_id(peer_id: int, entity_id: int) -> Error:
+	var peer := _peers_by_id.get(peer_id) as ENetPacketPeer
+	if peer == null:
+		return ERR_DOES_NOT_EXIST
+	if peer.get_state() != ENetPacketPeer.STATE_CONNECTED:
+		return ERR_CONNECTION_ERROR
+
+	var bytes := PackedByteArray()
+	bytes.resize(4)
+	_write_u32(bytes, 0, entity_id)
+	return peer.send(CHANNEL_IDENTITY, bytes, ENetPacketPeer.FLAG_RELIABLE)
 
 func _get_peer_id(peer: ENetPacketPeer) -> int:
 	return int(_peer_ids.get(_peer_key(peer), -1))
 
 func _peer_key(peer: ENetPacketPeer) -> String:
 	return "%s:%d" % [peer.get_remote_address(), peer.get_remote_port()]
+
+func _write_u32(bytes: PackedByteArray, offset: int, value: int) -> void:
+	bytes[offset] = value & 0xFF
+	bytes[offset + 1] = (value >> 8) & 0xFF
+	bytes[offset + 2] = (value >> 16) & 0xFF
+	bytes[offset + 3] = (value >> 24) & 0xFF

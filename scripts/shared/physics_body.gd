@@ -6,7 +6,6 @@ extends CharacterBody3D
 
 var face_angle: float:
 	get: return rotation.y
-	set(v): rotation.y = v
 
 func simulate(input: Dictionary, delta: float) -> void:
 	velocity += get_gravity() * delta  # always; move_and_slide zeroes it on floor contact

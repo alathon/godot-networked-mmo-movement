@@ -1,60 +1,66 @@
 extends Node
 
-const PredictionRingBufferScript = preload("res://scripts/client/prediction_ring_buffer.gd")
-
-@onready var entities: Node = %Entities
 @onready var ticker: Ticker = %Ticker
-
-var _movement_seq := 0
-var _prediction_buffer = PredictionRingBufferScript.new(30)
+@onready var api: API = $API
+@onready var player_spawner: ClientPlayerSpawner = $PlayerSpawner
 
 func _ready() -> void:
 	ticker.tick.connect(_on_tick)
+	api.movement_snapshot_received.connect(_on_movement_snapshot_received)
 
-func _on_tick(n: int, delta: float) -> void:
-	var player := _get_local_player()
+func _on_tick(_n: int, delta: float) -> void:
+	var player: Player = player_spawner.get_local_player()
 	if player == null:
 		return
 
-	var input := _gather_player_input(player)
-	input["seq"] = _movement_seq
-	_movement_seq += 1
-
-	var prediction_frame: Variant = _store_prediction_frame(input)
-	_apply_player_movement(player, input, delta)
-	_apply_remote_entity_movement(player, delta)
-	_send_player_input_to_server(input, prediction_frame)
-
-func _get_local_player() -> PhysicsBody:
-	var player := entities.get_node_or_null("PlayerEntity")
-	if player is PhysicsBody:
-		return player
-
-	for child in entities.get_children():
-		if child is PhysicsBody:
-			return child
-
-	return null
-
-func _gather_player_input(player: PhysicsBody) -> Dictionary:
-	var input_node := player.get_node_or_null("PlayerInput")
-	if input_node != null and input_node.has_method("gather"):
-		return input_node.gather()
-	return {}
-
-func _apply_player_movement(player: PhysicsBody, input: Dictionary, delta: float) -> void:
+	var input: Dictionary = player.get_player_input().record_input(player)
 	player.simulate(input, delta)
+	_apply_remote_entities_movement(delta)
+	player.get_player_input().send_input_to_server(input)
 
-func _apply_remote_entity_movement(local_player: PhysicsBody, delta: float) -> void:
-	for entity in entities.get_children():
-		if entity == local_player:
+func _apply_remote_entities_movement(delta: float):
+	for entity in player_spawner.entities:
+		if entity is not RemoteEntity:
 			continue
-		if entity.has_method("simulate_remote_tick"):
-			entity.simulate_remote_tick(delta)
+		
+		var rentity: RemoteEntity = entity
+		rentity.simulate(delta) # TODO: Remote interpolation somehow???
 
-func _send_player_input_to_server(input: Dictionary, prediction_frame) -> void:
-	var previous_frame: Variant = _prediction_buffer.get_previous_frame(prediction_frame.seq)
-	API.send_player_input(input, previous_frame)
+func _on_movement_snapshot_received(snapshot_entities: Array[Dictionary]) -> void:
+	for snapshot in snapshot_entities:
+		var entity_id := int(snapshot["entity_id"])
+		if entity_id != player_spawner.local_entity_id:
+			player_spawner.ensure_remote_player(entity_id)
+			continue
 
-func _store_prediction_frame(input: Dictionary):
-	return _prediction_buffer.store(input)
+		var seq := int(snapshot["last_processed_movement_seq"])
+		if seq == MovementSnapshotCodec.NO_PROCESSED_SEQ:
+			continue
+
+		var player := player_spawner.get_local_player()
+		if player == null:
+			continue
+
+		var player_input: PlayerInput = player.get_player_input()
+		var predicted_position: Vector3 = player_input.get_predicted_position(seq)
+		if predicted_position == null:
+			print("snapshot seq=%d no local prediction frame" % seq)
+			continue
+
+		var authoritative_position: Vector3 = snapshot["position"]
+		var diff: Vector3 = authoritative_position - predicted_position
+		if diff.length() < 0.01:
+			continue
+
+		print(
+			"snapshot seq=%d diff=(%.3f, %.3f, %.3f) len=%.3f predicted=%s authoritative=%s" %
+			[
+				seq,
+				diff.x,
+				diff.y,
+				diff.z,
+				diff.length(),
+				predicted_position,
+				authoritative_position,
+			]
+		)

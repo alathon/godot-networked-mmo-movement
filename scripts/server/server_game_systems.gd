@@ -30,8 +30,8 @@ func _gather_player_inputs() -> void:
 func _apply_player_movement(delta: float) -> void:
 	var players: Dictionary = player_spawner.get_players()
 	for peer_id in _tick_context:
-		var player: PhysicsBody = players[peer_id]
-		player.simulate(_tick_context[peer_id]["input"], delta)
+		var player: ServerPlayerEntity = players[peer_id]
+		player.get_body().simulate(_tick_context[peer_id]["input"], delta)
 
 func _apply_other_systems(_delta: float) -> void:
 	pass
@@ -41,14 +41,15 @@ func _broadcast_movement_snapshot() -> void:
 
 	var players: Dictionary = player_spawner.get_players()
 	for peer_id in players:
-		var player: PhysicsBody = players[peer_id]
+		var player: ServerPlayerEntity = players[peer_id]
+		var body: PhysicsBody = player.get_body()
 		entities.append({
-			"entity_id": peer_id,
+			"entity_id": player.entity_id,
 			"last_processed_movement_seq": player_input_handler.get_last_processed_seq(peer_id),
-			"position": player.global_position,
-			"velocity": player.velocity,
-			"rotation": player.global_transform.basis.get_rotation_quaternion(),
-			"is_on_floor": player.is_on_floor(),
+			"position": body.global_position,
+			"velocity": body.velocity,
+			"rotation": body.global_transform.basis.get_rotation_quaternion(),
+			"is_on_floor": body.is_on_floor(),
 		})
 
 	if entities.is_empty():

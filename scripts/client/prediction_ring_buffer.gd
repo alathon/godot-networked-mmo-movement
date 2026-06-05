@@ -8,6 +8,7 @@ class Frame:
 	var input_z := 0.0
 	var jump_pressed := false
 	var jump_down := false
+	var predicted_position := Vector3.ZERO
 
 	func write_from_input(input: Dictionary) -> void:
 		valid = true
@@ -17,12 +18,8 @@ class Frame:
 		jump_pressed = bool(input.get("jump_pressed", false))
 		jump_down = bool(input.get("jump_down", false))
 
-	func write_to_message(message) -> void:
-		message.set_seq(seq)
-		message.set_input_x(input_x)
-		message.set_input_z(input_z)
-		message.set_jump_pressed(jump_pressed)
-		message.set_jump_down(jump_down)
+	func write_predicted_state(body: PhysicsBody) -> void:
+		predicted_position = body.global_position
 
 var _frames: Array[Frame] = []
 var _size := 0
@@ -48,6 +45,12 @@ func get_frame(seq: int) -> Frame:
 
 func get_previous_frame(seq: int) -> Frame:
 	return get_frame(seq - 1)
+
+func get_predicted_position(seq: int):
+	var frame := get_frame(seq)
+	if frame == null:
+		return Vector3.ZERO
+	return frame.predicted_position
 
 func _index_for_seq(seq: int) -> int:
 	return posmod(seq, _size)

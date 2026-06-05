@@ -26,7 +26,6 @@ const CLICK_DRAG_THRESHOLD_PX := 6.0
 var _spring_arm_target_length := camera_default_distance
 
 @onready var _spring_arm: SpringArm3D = $SpringArm3D
-#@onready var _camera: Camera3D = $SpringArm3D/Camera
 
 var _mouse_position_when_hidden = Vector2.ZERO
 var _left_click_position: Vector2 = Vector2.ZERO

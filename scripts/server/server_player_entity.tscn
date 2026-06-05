@@ -1,17 +1,19 @@
 [gd_scene format=3 uid="uid://dijrm0tjvc0xj"]
 
+[ext_resource type="Script" uid="uid://byq7muhg2aten" path="res://scripts/server/server_player_entity.gd" id="1_dnu26"]
 [ext_resource type="Script" uid="uid://bse8le1fndpvu" path="res://scripts/shared/physics_body.gd" id="1_m4u6d"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_l2lw7"]
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_l2lw7"]
 
-[node name="PlayerEntity" type="CharacterBody3D" unique_id=1424774371]
-collision_mask = 2
-script = ExtResource("1_m4u6d")
-metadata/_custom_type_script = "uid://bse8le1fndpvu"
+[node name="ServerPlayerEntity" type="Node" unique_id=1215361097]
+script = ExtResource("1_dnu26")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1723625779]
+[node name="Body" type="CharacterBody3D" parent="." unique_id=2084136788]
+script = ExtResource("1_m4u6d")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Body" unique_id=1723625779]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 shape = SubResource("CapsuleShape3D_l2lw7")
 

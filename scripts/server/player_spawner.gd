@@ -7,13 +7,14 @@ const SPAWN_POSITION := Vector3(-39.976143, 0.7148186, -40.79889)
 @onready var server_network: Node = %ServerNetwork
 
 var _players_by_peer_id: Dictionary = {}
+var _next_entity_id := 1
 
 func _ready() -> void:
 	server_network.player_connected.connect(_on_player_connected)
 	server_network.player_disconnected.connect(_on_player_disconnected)
 
-func get_player(peer_id: int) -> PhysicsBody:
-	return _players_by_peer_id.get(peer_id) as PhysicsBody
+func get_player(peer_id: int) -> ServerPlayerEntity:
+	return _players_by_peer_id.get(peer_id) as ServerPlayerEntity
 
 func get_players() -> Dictionary:
 	return _players_by_peer_id
@@ -25,14 +26,17 @@ func _on_player_connected(peer_id: int) -> void:
 	if _players_by_peer_id.has(peer_id):
 		return
 
-	var player := SERVER_PLAYER_ENTITY.instantiate() as PhysicsBody
+	var player := SERVER_PLAYER_ENTITY.instantiate() as ServerPlayerEntity
 	player.name = "Player_%d" % peer_id
-	player.position = SPAWN_POSITION
+	player.entity_id = _next_entity_id
+	_next_entity_id += 1
 
 	entities.add_child(player)
+	player.get_body().global_position = SPAWN_POSITION
 	_players_by_peer_id[peer_id] = player
+	server_network.send_local_entity_id(peer_id, player.entity_id)
 
-	print("Spawned server player for peer %d" % peer_id)
+	print("Spawned server player entity=%d for peer %d" % [player.entity_id, peer_id])
 
 func _on_player_disconnected(peer_id: int) -> void:
 	var player := _players_by_peer_id.get(peer_id) as Node
@@ -42,4 +46,4 @@ func _on_player_disconnected(peer_id: int) -> void:
 	_players_by_peer_id.erase(peer_id)
 	player.queue_free()
 
-	print("Removed server player for peer %d" % peer_id)
+	print("Removed server player entity=%d for peer %d" % [player.entity_id, peer_id])
