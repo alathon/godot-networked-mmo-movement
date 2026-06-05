@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://drt7o4vcdutmn"]
 
-[ext_resource type="Script" uid="uid://c7hneo1fqcp5r" path="res://scripts/remote_entity.gd" id="1_rjqja"]
+[ext_resource type="Script" uid="uid://c7hneo1fqcp5r" path="res://scripts/client/remote_entity.gd" id="1_rjqja"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_l2lw7"]
 

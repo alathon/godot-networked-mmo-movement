@@ -51,7 +51,7 @@ func _apply_remote_entity_movement(local_player: PhysicsBody, delta: float) -> v
 			entity.simulate_remote_tick(delta)
 
 func _send_player_input_to_server(input: Dictionary) -> void:
-	pass
+	API.send_player_input(input)
 
 func _store_prediction_frame(input: Dictionary) -> void:
 	_prediction_buffer.append(input.duplicate(true))

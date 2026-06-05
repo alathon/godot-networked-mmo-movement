@@ -1,10 +1,11 @@
 [gd_scene format=3 uid="uid://gxc0uct42x"]
 
-[ext_resource type="Texture2D" uid="uid://dpa1bc6hme4os" path="res://textures/grass001_albedo_height.png" id="1_nxogm"]
-[ext_resource type="Texture2D" uid="uid://nj4d6up77f7i" path="res://textures/grass001_normal_roughness.png" id="2_3253y"]
-[ext_resource type="PackedScene" uid="uid://hn8q3dj44yod" path="res://player_entity.tscn" id="3_3253y"]
-[ext_resource type="Script" uid="uid://cl2lbdvark513" path="res://scripts/ticker.gd" id="4_u3cyc"]
-[ext_resource type="Script" uid="uid://cnq2s61glph30" path="res://scripts/game_systems.gd" id="5_m7jmp"]
+[ext_resource type="Texture2D" uid="uid://dpa1bc6hme4os" path="res://textures/grass001_albedo_height.png" id="1_f2dhx"]
+[ext_resource type="Texture2D" uid="uid://nj4d6up77f7i" path="res://textures/grass001_normal_roughness.png" id="2_8nk2g"]
+[ext_resource type="Script" uid="uid://cl2lbdvark513" path="res://scripts/shared/ticker.gd" id="3_1b1h4"]
+[ext_resource type="Script" uid="uid://cnq2s61glph30" path="res://scripts/client/game_systems.gd" id="4_1dmei"]
+[ext_resource type="Script" uid="uid://dtmvbbgw50v4a" path="res://scripts/client/api.gd" id="5_4drak"]
+[ext_resource type="PackedScene" uid="uid://hn8q3dj44yod" path="res://player_entity.tscn" id="6_kmjl6"]
 
 [sub_resource type="Terrain3DMaterial" id="Terrain3DMaterial_u3cyc"]
 _shader_parameters = {
@@ -42,8 +43,8 @@ lod0_range = 128.0
 
 [sub_resource type="Terrain3DTextureAsset" id="Terrain3DTextureAsset_ni31j"]
 name = "grass001_albedo_height"
-albedo_texture = ExtResource("1_nxogm")
-normal_texture = ExtResource("2_3253y")
+albedo_texture = ExtResource("1_f2dhx")
+normal_texture = ExtResource("2_8nk2g")
 
 [sub_resource type="Terrain3DAssets" id="Terrain3DAssets_xlvrw"]
 mesh_list = Array[Terrain3DMeshAsset]([SubResource("Terrain3DMeshAsset_y2354")])
@@ -65,16 +66,19 @@ metadata/_edit_lock_ = true
 
 [node name="Ticker" type="Node" parent="." unique_id=1347141368]
 unique_name_in_owner = true
-script = ExtResource("4_u3cyc")
+script = ExtResource("3_1b1h4")
 
 [node name="GameSystems" type="Node" parent="." unique_id=192668155]
 unique_name_in_owner = true
-script = ExtResource("5_m7jmp")
+script = ExtResource("4_1dmei")
+
+[node name="API" type="Node" parent="GameSystems" unique_id=1462841541]
+script = ExtResource("5_4drak")
 
 [node name="Entities" type="Node" parent="." unique_id=2012631697]
 unique_name_in_owner = true
 
-[node name="PlayerEntity" parent="Entities" unique_id=1424774371 instance=ExtResource("3_3253y")]
+[node name="PlayerEntity" parent="Entities" unique_id=1424774371 instance=ExtResource("6_kmjl6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.976143, 0.7148186, -40.79889)
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1496765935]

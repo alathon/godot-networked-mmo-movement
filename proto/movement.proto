@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+message MovementInput {
+	uint32 seq = 1;
+	float input_x = 2;
+	float input_z = 3;
+	bool jump_pressed = 4;
+	bool jump_down = 5;
+}

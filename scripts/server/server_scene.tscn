@@ -1,0 +1,83 @@
+[gd_scene format=3 uid="uid://ymt4ji7a18q1"]
+
+[ext_resource type="Texture2D" uid="uid://dpa1bc6hme4os" path="res://textures/grass001_albedo_height.png" id="1_ltp1w"]
+[ext_resource type="Texture2D" uid="uid://nj4d6up77f7i" path="res://textures/grass001_normal_roughness.png" id="2_x5607"]
+[ext_resource type="Script" uid="uid://cl2lbdvark513" path="res://scripts/shared/ticker.gd" id="3_4tdu6"]
+[ext_resource type="Script" uid="uid://1dw21ukwu4vs" path="res://scripts/server/server_network.gd" id="4_ltp1w"]
+
+[sub_resource type="Terrain3DMaterial" id="Terrain3DMaterial_u3cyc"]
+_shader_parameters = {
+&"bias_distance": null,
+&"blend_sharpness": null,
+&"depth_blur": null,
+&"flat_terrain_normals": null,
+&"ground_level": null,
+&"mipmap_bias": null,
+&"region_blend": null,
+&"shader_uniforms": null,
+&"shader_uniforms::general": null,
+&"shader_uniforms::mipmaps": null
+}
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_m7jmp"]
+transparency = 4
+cull_mode = 2
+vertex_color_use_as_albedo = true
+backlight_enabled = true
+backlight = Color(0.5, 0.5, 0.5, 1)
+distance_fade_mode = 1
+distance_fade_min_distance = 128.0
+distance_fade_max_distance = 96.0
+metadata/terrain3d_generated_material = true
+
+[sub_resource type="Terrain3DMeshAsset" id="Terrain3DMeshAsset_y2354"]
+generated_type = 1
+height_offset = 0.5
+density = 10.0
+material_override = SubResource("StandardMaterial3D_m7jmp")
+last_lod = 0
+last_shadow_lod = 0
+lod0_range = 128.0
+
+[sub_resource type="Terrain3DTextureAsset" id="Terrain3DTextureAsset_ni31j"]
+name = "grass001_albedo_height"
+albedo_texture = ExtResource("1_ltp1w")
+normal_texture = ExtResource("2_x5607")
+
+[sub_resource type="Terrain3DAssets" id="Terrain3DAssets_xlvrw"]
+mesh_list = Array[Terrain3DMeshAsset]([SubResource("Terrain3DMeshAsset_y2354")])
+texture_list = Array[Terrain3DTextureAsset]([SubResource("Terrain3DTextureAsset_ni31j")])
+
+[sub_resource type="Environment" id="Environment_m7jmp"]
+
+[node name="Node3D2" type="Node3D" unique_id=1238542963]
+
+[node name="Terrain3D" type="Terrain3D" parent="." unique_id=327729889]
+data_directory = "res://data"
+material = SubResource("Terrain3DMaterial_u3cyc")
+assets = SubResource("Terrain3DAssets_xlvrw")
+collision_mode = 4
+collision_layer = 2
+displacement_sharpness = 0.5
+top_level = true
+metadata/_edit_lock_ = true
+
+[node name="Ticker" type="Node" parent="." unique_id=1347141368]
+unique_name_in_owner = true
+script = ExtResource("3_4tdu6")
+
+[node name="ServerNetwork" type="Node" parent="." unique_id=339430634]
+script = ExtResource("4_ltp1w")
+
+[node name="Entities" type="Node" parent="." unique_id=2012631697]
+unique_name_in_owner = true
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1496765935]
+environment = SubResource("Environment_m7jmp")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1442855236]
+transform = Transform3D(1, 0, 0, 0, 0.29914066, 0.954209, 0, -0.954209, 0.29914066, 0, 84.93894, 0)
+
+[node name="DebugCamera3D" type="Camera3D" parent="." unique_id=339430635]
+transform = Transform3D(0.5820265, -0.3017221, 0.75511724, -3.7945938e-08, 0.9286143, 0.37104657, -0.8131672, -0.21597067, 0.5404841, -45, 20, -45)
+current = true
