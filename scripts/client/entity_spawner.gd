@@ -7,8 +7,8 @@ signal entity_despawned(entity_id: int)
 @onready var api: API = %API
 @onready var entities_container: Node = %Entities
 
-const PLAYER_ENTITY = preload("res://scripts/client/player_entity.tscn")
-const REMOTE_ENTITY = preload("res://scripts/client/remote_entity.tscn")
+@export var player_entity_scene: PackedScene
+@export var remote_entity_scene: PackedScene
 
 var _local_player_id = -1
 var _local_player: Player
@@ -83,7 +83,7 @@ func _spawn_local_player(spawn: EntityLifecycleMsg.SpawnRecord) -> Player:
 		entities.erase(_local_player_id)
 		stale_remote.queue_free()
 
-	var player: Player = PLAYER_ENTITY.instantiate()
+	var player: Player = player_entity_scene.instantiate()
 	player.name = "PlayerEntity"
 	player.entity_id = _local_player_id
 
@@ -104,7 +104,7 @@ func _spawn_remote_entity(spawn: EntityLifecycleMsg.SpawnRecord) -> RemoteEntity
 		_apply_spawn_transform(existing, spawn)
 		return existing
 
-	var remote: RemoteEntity = REMOTE_ENTITY.instantiate()
+	var remote: RemoteEntity = remote_entity_scene.instantiate()
 	remote.name = "Remote_%d" % entity_id
 	remote.entity_id = entity_id
 

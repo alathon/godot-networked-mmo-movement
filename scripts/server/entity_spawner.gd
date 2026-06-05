@@ -4,7 +4,9 @@ extends Node
 signal entity_spawned(entity: BaseEntity)
 signal entity_despawned(entity: BaseEntity)
 
-const SERVER_PLAYER_ENTITY = preload("res://scripts/server/server_player_entity.tscn")
+@export var player_entity_scene: PackedScene
+@export var npc_entity: PackedScene
+
 const SPAWN_POSITION := Vector3(-39.976143, 0.7148186, -40.79889)
 
 @onready var entities: Node = %Entities
@@ -19,7 +21,7 @@ func _on_player_connected(peer_id: int) -> void:
 	if entity_tracker.has_player(peer_id):
 		return
 
-	var player = SERVER_PLAYER_ENTITY.instantiate() as ServerPlayerEntity
+	var player = player_entity_scene.instantiate()
 	player.name = "Player_%d" % peer_id
 	player.peer_id = peer_id
 	player.entity_id = entity_tracker.allocate_entity_id()

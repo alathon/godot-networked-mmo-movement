@@ -6,6 +6,7 @@
 [ext_resource type="Script" uid="uid://1dw21ukwu4vs" path="res://scripts/server/server_network.gd" id="4_ltp1w"]
 [ext_resource type="Script" uid="uid://78yuijk5ovty" path="res://scripts/server/entity_spawner.gd" id="5_x5607"]
 [ext_resource type="Script" uid="uid://dh1cfhwqu5vnb" path="res://scripts/server/player_input_handler.gd" id="6_ltp1w"]
+[ext_resource type="PackedScene" uid="uid://dijrm0tjvc0xj" path="res://scripts/server/server_player_entity.tscn" id="7_52413"]
 [ext_resource type="Script" uid="uid://d0yoksrs3f6od" path="res://scripts/server/server_game_systems.gd" id="7_x5607"]
 [ext_resource type="Script" uid="uid://c544qf42hwrs0" path="res://scripts/server/entity_tracker.gd" id="8_entity"]
 
@@ -38,6 +39,7 @@ script = ExtResource("8_entity")
 [node name="EntitySpawner" type="Node" parent="." unique_id=339430636]
 unique_name_in_owner = true
 script = ExtResource("5_x5607")
+player_entity_scene = ExtResource("7_52413")
 
 [node name="PlayerInputHandler" type="Node" parent="." unique_id=339430637]
 unique_name_in_owner = true
