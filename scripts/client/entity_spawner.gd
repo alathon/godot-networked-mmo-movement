@@ -1,4 +1,4 @@
-class_name EntitySpawner
+class_name ClientEntitySpawner
 extends Node
 
 signal entity_spawned(entity: BaseEntity)

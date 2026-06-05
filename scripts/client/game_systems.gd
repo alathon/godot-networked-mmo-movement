@@ -2,7 +2,7 @@ extends Node
 
 @onready var ticker: Ticker = %Ticker
 @onready var api: API = $API
-@onready var entity_spawner: EntitySpawner = $EntitySpawner
+@onready var entity_spawner: ClientEntitySpawner = $EntitySpawner
 
 var _last_tick_delta: float = Ticker.DEFAULT_TICK_SECONDS
 

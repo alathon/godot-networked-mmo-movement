@@ -4,9 +4,10 @@
 [ext_resource type="Terrain3DAssets" uid="uid://cflggrxrtbfju" path="res://data/new_terrain_3d_assets.tres" id="2_5g3dn"]
 [ext_resource type="Script" uid="uid://cl2lbdvark513" path="res://scripts/shared/ticker.gd" id="3_4tdu6"]
 [ext_resource type="Script" uid="uid://1dw21ukwu4vs" path="res://scripts/server/server_network.gd" id="4_ltp1w"]
-[ext_resource type="Script" uid="uid://78yuijk5ovty" path="res://scripts/server/player_spawner.gd" id="5_x5607"]
+[ext_resource type="Script" uid="uid://78yuijk5ovty" path="res://scripts/server/entity_spawner.gd" id="5_x5607"]
 [ext_resource type="Script" uid="uid://dh1cfhwqu5vnb" path="res://scripts/server/player_input_handler.gd" id="6_ltp1w"]
 [ext_resource type="Script" uid="uid://d0yoksrs3f6od" path="res://scripts/server/server_game_systems.gd" id="7_x5607"]
+[ext_resource type="Script" uid="uid://c544qf42hwrs0" path="res://scripts/server/entity_tracker.gd" id="8_entity"]
 
 [sub_resource type="Environment" id="Environment_m7jmp"]
 
@@ -30,7 +31,11 @@ script = ExtResource("3_4tdu6")
 unique_name_in_owner = true
 script = ExtResource("4_ltp1w")
 
-[node name="PlayerSpawner" type="Node" parent="." unique_id=339430636]
+[node name="EntityTracker" type="Node" parent="." unique_id=1554546362]
+unique_name_in_owner = true
+script = ExtResource("8_entity")
+
+[node name="EntitySpawner" type="Node" parent="." unique_id=339430636]
 unique_name_in_owner = true
 script = ExtResource("5_x5607")
 

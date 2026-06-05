@@ -1,7 +1,7 @@
 class_name PhysicsBody
 extends CharacterBody3D
 
-@export_range(2.0, 20.0) var Speed = 10.0
+@export_range(2.0, 40.0) var Speed = 10.0
 @export_range(4.5, 10.0) var JumpVelocity = 4.5
 
 var face_angle: float:
