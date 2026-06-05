@@ -75,17 +75,17 @@ func _receive_movement_input(peer: ENetPacketPeer) -> void:
 func _receive_movement_input_frame(peer_id: int, input: MovementInputFrame) -> void:
 	player_input_received.emit(peer_id, input)
 
-	print(
-		"input peer=%d seq=%d x=%.3f z=%.3f jump=%s down=%s" %
-		[
-			peer_id,
-			input.seq,
-			input.input_x,
-			input.input_z,
-			input.jump_pressed,
-			input.jump_down,
-		]
-	)
+	# print(
+	# 	"input peer=%d seq=%d x=%.3f z=%.3f jump=%s down=%s" %
+	# 	[
+	# 		peer_id,
+	# 		input.seq,
+	# 		input.input_x,
+	# 		input.input_z,
+	# 		input.jump_pressed,
+	# 		input.jump_down,
+	# 	]
+	# )
 
 func _cleanup_disconnected_peers() -> void:
 	var peer_ids = _peers_by_id.keys()

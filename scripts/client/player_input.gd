@@ -26,10 +26,27 @@ func record_predicted_state() -> void:
 
 func get_previous_input_for_resend() -> Variant:
 	var previous_frame: Variant = _prediction_buffer.get_previous_frame(current_input.seq)
+	if previous_frame == null or not previous_frame.valid or previous_frame.seq < 0:
+		return null
 	return previous_frame
 
 func get_predicted_position(seq: int) -> Variant:
 	return _prediction_buffer.get_predicted_position(seq)
+
+func get_prediction_frame(seq: int) -> PredictionRingBuffer.Frame:
+	return _prediction_buffer.get_frame(seq)
+
+func get_unacknowledged_prediction_frames(ack_seq: int) -> Array[PredictionRingBuffer.Frame]:
+	return _prediction_buffer.get_unacknowledged_frames(ack_seq)
+
+func write_unacknowledged_prediction_frames(
+	ack_seq: int,
+	frames: Array[PredictionRingBuffer.Frame]
+) -> void:
+	_prediction_buffer.write_unacknowledged_frames(ack_seq, frames)
+
+func prune_acknowledged_prediction_frames(ack_seq: int) -> int:
+	return _prediction_buffer.prune_acknowledged(ack_seq)
 
 func _write_current_input() -> void:
 	var left = _is_pressed(&"move_left", KEY_A)

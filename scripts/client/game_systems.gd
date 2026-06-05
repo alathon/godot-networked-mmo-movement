@@ -4,11 +4,14 @@ extends Node
 @onready var api: API = $API
 @onready var entity_spawner: EntitySpawner = $EntitySpawner
 
+var _last_tick_delta: float = Ticker.DEFAULT_TICK_SECONDS
+
 func _ready() -> void:
 	ticker.tick.connect(_on_tick)
 	api.movement_snapshot_received.connect(_on_movement_snapshot_received)
 
 func _on_tick(_n: int, delta: float) -> void:
+	_last_tick_delta = delta
 	var player: Player = entity_spawner.get_local_player()
 	if player == null:
 		return
@@ -23,43 +26,33 @@ func _on_tick(_n: int, delta: float) -> void:
 	)
 
 func _on_movement_snapshot_received(msg: MovementSnapshotMsg) -> void:
+	var local_snapshot: MovementSnapshotMsg.EntitySnapshot = null
 	for snapshot in msg.entities:
 		var entity_id = snapshot.entity_id
 
 		if entity_id != entity_spawner.local_entity_id:
-			var remote = entity_spawner.get_player(entity_id) as RemoteEntity
+			var remote: RemoteEntity = entity_spawner.get_player(entity_id) as RemoteEntity
 			if remote != null:
 				remote.push_movement_snapshot(snapshot)
 			continue
 
-		var seq = snapshot.last_processed_movement_seq
-		if seq == MovementSnapshotMsg.NO_PROCESSED_SEQ:
-			continue
+		local_snapshot = snapshot
 
-		var player = entity_spawner.get_local_player()
-		if player == null:
-			continue
+	if local_snapshot == null:
+		return
 
-		var player_input: PlayerInput = player.get_player_input()
-		var predicted_position: Variant = player_input.get_predicted_position(seq)
-		if predicted_position == null:
-			print("snapshot seq=%d no local prediction frame" % seq)
-			continue
+	_reconcile_local_player(local_snapshot)
 
-		var authoritative_position = snapshot.position
-		var diff: Vector3 = authoritative_position - predicted_position
-		if diff.length() < 0.01:
-			continue
+func _reconcile_local_player(snapshot: MovementSnapshotMsg.EntitySnapshot) -> void:
+	if snapshot.last_processed_movement_seq == MovementSnapshotMsg.NO_PROCESSED_SEQ:
+		return
 
-		print(
-			"snapshot seq=%d diff=(%.3f, %.3f, %.3f) len=%.3f predicted=%s authoritative=%s" %
-			[
-				seq,
-				diff.x,
-				diff.y,
-				diff.z,
-				diff.length(),
-				predicted_position,
-				authoritative_position,
-			]
-		)
+	var player: Player = entity_spawner.get_local_player()
+	if player == null:
+		return
+
+	var reconciliation: PlayerMovementReconciliation = player.get_movement_reconciliation()
+	if reconciliation == null:
+		return
+
+	reconciliation.reconcile(snapshot, _last_tick_delta)

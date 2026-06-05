@@ -1,5 +1,7 @@
 extends Node
 
+const INVALID_INPUT_SEQ := 0xFFFFFFFF
+
 class PeerBuffer:
 	var peer_id = -1
 	var last_seen_seq = -1
@@ -29,14 +31,14 @@ func get_next_input(peer_id: int) -> MovementInputFrame:
 		return _missing_peer_input
 
 	if not peer_buffer.inputs_by_seq.is_empty():
-		var seq = _get_lowest_buffered_seq(peer_buffer.inputs_by_seq)
+		var seq: int = _get_lowest_buffered_seq(peer_buffer.inputs_by_seq)
 		var input: MovementInputFrame = peer_buffer.inputs_by_seq[seq]
 		peer_buffer.inputs_by_seq.erase(seq)
 		peer_buffer.last_processed_seq = seq
 		peer_buffer.last_held_input = input
 		return input
 
-	var synthetic = _make_synthetic_input(peer_buffer)
+	var synthetic: MovementInputFrame = _make_synthetic_input(peer_buffer)
 	peer_buffer.last_held_input = synthetic
 	return synthetic
 
@@ -52,6 +54,9 @@ func _on_player_input_received(peer_id: int, input: MovementInputFrame) -> void:
 		return
 
 	var seq = input.seq
+	if seq == INVALID_INPUT_SEQ:
+		return
+
 	if seq <= peer_buffer.last_seen_seq:
 		return
 
