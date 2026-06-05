@@ -49,7 +49,7 @@ func get_previous_frame(seq: int) -> Frame:
 func get_predicted_position(seq: int):
 	var frame := get_frame(seq)
 	if frame == null:
-		return Vector3.ZERO
+		return null
 	return frame.predicted_position
 
 func _index_for_seq(seq: int) -> int:
