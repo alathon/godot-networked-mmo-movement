@@ -16,16 +16,7 @@ func _on_tick(_n: int, delta: float) -> void:
 	var player_input: PlayerInput = player.get_player_input()
 	var input: Dictionary = player_input.record_input(player)
 	player.simulate(input, delta)
-	_apply_remote_entities_movement(delta)
 	send_input_to_server(input, player_input)
-
-func _apply_remote_entities_movement(delta: float):
-	for entity in player_spawner.get_players().values():
-		if entity is not RemoteEntity:
-			continue
-		
-		var rentity: RemoteEntity = entity
-		rentity.simulate(delta)
 
 func send_input_to_server(input: Dictionary, player_input: PlayerInput) -> void:
 	var previous_frame: Variant = player_input.flush_prediction_frame()

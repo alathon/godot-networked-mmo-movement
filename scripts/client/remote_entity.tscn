@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://c7hneo1fqcp5r" path="res://scripts/client/remote_entity.gd" id="1_y7ke5"]
 [ext_resource type="Script" uid="uid://ckn385bdji0od" path="res://scripts/client/remote_body.gd" id="2_dajna"]
+[ext_resource type="Script" uid="uid://ceueav1yv38x2" path="res://scripts/client/remote_interpolation_buffer.gd" id="3_un4g1"]
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_l2lw7"]
 
@@ -18,3 +19,7 @@ unique_name_in_owner = true
 [node name="Mesh" type="MeshInstance3D" parent="Model" unique_id=2130454875]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 mesh = SubResource("CapsuleMesh_l2lw7")
+
+[node name="RemoteInterpolationBuffer" type="Node" parent="." unique_id=1277255548]
+unique_name_in_owner = true
+script = ExtResource("3_un4g1")
