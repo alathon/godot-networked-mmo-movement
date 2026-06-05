@@ -23,10 +23,10 @@ Both client and server scenes use this as their simulation clock.
 `PhysicsBody` is the shared movement simulation body. It extends `CharacterBody3D` and exposes:
 
 ```gdscript
-simulate(input: Dictionary, delta: float)
+simulate(input: MovementInputMsg.InputFrame, delta: float)
 ```
 
-The input dictionary currently contains:
+The input frame currently contains:
 
 ```text
 seq
@@ -37,9 +37,10 @@ jump_down
 synthetic optional
 ```
 
-#### `scripts/shared/movement_input_codec.gd`
+#### `scripts/shared/protocol/movement_input_msg.gd`
 
-Client-to-server movement input uses a hand-written binary codec.
+Client-to-server movement input uses a hand-written binary message.
+Each packet begins with the movement input magic byte from `scripts/shared/protocol/message_headers.gd`.
 
 Each packet contains:
 
@@ -50,9 +51,10 @@ current_input
 
 This gives one-frame UDP redundancy while keeping the packet fixed-size and easy to inspect.
 
-#### `scripts/shared/movement_snapshot_codec.gd`
+#### `scripts/shared/protocol/movement_snapshot_msg.gd`
 
-Server-to-client movement snapshots use a hand-written binary codec instead of protobuf.
+Server-to-client movement snapshots use a hand-written binary message instead of protobuf.
+Each packet begins with the movement snapshot magic byte from `scripts/shared/protocol/message_headers.gd`.
 
 Each packet has a small header and then one fixed-size entity record per entity. Each entity record contains:
 
@@ -65,11 +67,12 @@ quantized rotation
 flags
 ```
 
-Position is quantized to millimeters. Velocity is quantized to centimeters per second. Rotation uses a smallest-three quantized quaternion. The current entity record is 34 bytes, plus a 4-byte packet header.
+Position is quantized to millimeters. Velocity is quantized to centimeters per second. Rotation uses a smallest-three quantized quaternion. The current entity record is 34 bytes, plus an 8-byte packet header.
 
-#### `scripts/shared/entity_lifecycle_codec.gd`
+#### `scripts/shared/protocol/entity_lifecycle_msg.gd`
 
-Server-to-client entity lifecycle uses a hand-written binary codec on a reliable channel.
+Server-to-client entity lifecycle uses a hand-written binary message on a reliable channel.
+Each packet begins with the entity lifecycle magic byte from `scripts/shared/protocol/message_headers.gd`.
 
 Each lifecycle packet contains:
 

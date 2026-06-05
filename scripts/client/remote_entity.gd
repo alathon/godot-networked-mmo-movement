@@ -13,10 +13,10 @@ func is_alive():
 func get_body():
 	return body
 
-func push_movement_snapshot(snapshot: Dictionary) -> void:
+func push_movement_snapshot(snapshot: MovementSnapshotMsg.EntitySnapshot) -> void:
 	interpolation_buffer.push_movement_snapshot(snapshot)
 
 func apply_remote_transform(position: Vector3, rotation: Quaternion) -> void:
-	var remote_transform := Transform3D(Basis(rotation), position)
+	var remote_transform = Transform3D(Basis(rotation), position)
 	body.global_transform = remote_transform
 	%Model.global_transform = remote_transform

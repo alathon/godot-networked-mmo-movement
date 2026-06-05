@@ -1,7 +1,5 @@
 extends Node
 
-const MovementSnapshotCodecScript = preload("res://scripts/shared/movement_snapshot_codec.gd")
-
 @onready var ticker: Ticker = %Ticker
 @onready var player_spawner: Node = %PlayerSpawner
 @onready var player_input_handler: Node = %PlayerInputHandler
@@ -37,22 +35,22 @@ func _apply_other_systems(_delta: float) -> void:
 	pass
 
 func _broadcast_movement_snapshot(server_tick: int) -> void:
-	var entities: Array[Dictionary] = []
+	var entities: Array[MovementSnapshotMsg.EntitySnapshot] = []
 
 	var players: Dictionary = player_spawner.get_players()
 	for peer_id in players:
 		var player: ServerPlayerEntity = players[peer_id]
 		var body: PhysicsBody = player.get_body()
-		entities.append({
-			"entity_id": player.entity_id,
-			"last_processed_movement_seq": player_input_handler.get_last_processed_seq(peer_id),
-			"position": body.global_position,
-			"velocity": body.velocity,
-			"rotation": body.global_transform.basis.get_rotation_quaternion(),
-			"is_on_floor": body.is_on_floor(),
-		})
+		var snapshot = MovementSnapshotMsg.EntitySnapshot.new()
+		snapshot.entity_id = player.entity_id
+		snapshot.last_processed_movement_seq = player_input_handler.get_last_processed_seq(peer_id)
+		snapshot.position = body.global_position
+		snapshot.velocity = body.velocity
+		snapshot.rotation = body.global_transform.basis.get_rotation_quaternion()
+		snapshot.is_on_floor = body.is_on_floor()
+		entities.append(snapshot)
 
 	if entities.is_empty():
 		return
 
-	server_network.broadcast_movement_snapshot(MovementSnapshotCodecScript.encode_packet(entities, server_tick))
+	server_network.broadcast_movement_snapshot(MovementSnapshotMsg.encode(entities, server_tick))

@@ -14,29 +14,29 @@ func _on_tick(_n: int, delta: float) -> void:
 		return
 
 	var player_input: PlayerInput = player.get_player_input()
-	var input: Dictionary = player_input.record_input(player)
+	var input: MovementInputMsg.InputFrame = player_input.record_input(player)
 	player.simulate(input, delta)
 	send_input_to_server(input, player_input)
 
-func send_input_to_server(input: Dictionary, player_input: PlayerInput) -> void:
+func send_input_to_server(input: MovementInputMsg.InputFrame, player_input: PlayerInput) -> void:
 	var previous_frame: Variant = player_input.flush_prediction_frame()
 	api.send_player_input(input, previous_frame)
 
-func _on_movement_snapshot_received(snapshot_entities: Array[Dictionary]) -> void:
-	for snapshot in snapshot_entities:
-		var entity_id := int(snapshot["entity_id"])
+func _on_movement_snapshot_received(msg: MovementSnapshotMsg) -> void:
+	for snapshot in msg.entities:
+		var entity_id = snapshot.entity_id
 
 		if entity_id != player_spawner.local_entity_id:
-			var remote := player_spawner.get_player(entity_id) as RemoteEntity
+			var remote = player_spawner.get_player(entity_id) as RemoteEntity
 			if remote != null:
 				remote.push_movement_snapshot(snapshot)
 			continue
 
-		var seq := int(snapshot["last_processed_movement_seq"])
-		if seq == MovementSnapshotCodec.NO_PROCESSED_SEQ:
+		var seq = snapshot.last_processed_movement_seq
+		if seq == MovementSnapshotMsg.NO_PROCESSED_SEQ:
 			continue
 
-		var player := player_spawner.get_local_player()
+		var player = player_spawner.get_local_player()
 		if player == null:
 			continue
 
@@ -46,7 +46,7 @@ func _on_movement_snapshot_received(snapshot_entities: Array[Dictionary]) -> voi
 			print("snapshot seq=%d no local prediction frame" % seq)
 			continue
 
-		var authoritative_position: Vector3 = snapshot["position"]
+		var authoritative_position = snapshot.position
 		var diff: Vector3 = authoritative_position - predicted_position
 		if diff.length() < 0.01:
 			continue

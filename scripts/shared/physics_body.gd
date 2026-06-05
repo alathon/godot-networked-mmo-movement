@@ -7,15 +7,15 @@ extends CharacterBody3D
 var face_angle: float:
 	get: return rotation.y
 
-func simulate(input: Dictionary, delta: float) -> void:
+func simulate(input: MovementInputMsg.InputFrame, delta: float) -> void:
 	velocity += get_gravity() * delta  # always; move_and_slide zeroes it on floor contact
 
-	if input.get("jump_pressed", false) and is_on_floor():
+	if input.jump_pressed and is_on_floor():
 		velocity.y = JumpVelocity
 
-	var ix: float = input.get("input_x", 0.0)
-	var iz: float = input.get("input_z", 0.0)
-	var movement := Vector3(ix, 0.0, iz)
+	var ix = input.input_x
+	var iz = input.input_z
+	var movement = Vector3(ix, 0.0, iz)
 
 	if movement != Vector3.ZERO:
 		velocity.x = movement.x * Speed
