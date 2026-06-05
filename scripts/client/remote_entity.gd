@@ -15,3 +15,8 @@ func get_body():
 
 func push_movement_snapshot(snapshot: Dictionary) -> void:
 	interpolation_buffer.push_movement_snapshot(snapshot)
+
+func apply_remote_transform(position: Vector3, rotation: Quaternion) -> void:
+	var remote_transform := Transform3D(Basis(rotation), position)
+	body.global_transform = remote_transform
+	%Model.global_transform = remote_transform

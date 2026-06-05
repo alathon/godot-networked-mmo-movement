@@ -3,15 +3,16 @@ extends Node
 
 const MovementInputCodecScript = preload("res://scripts/shared/movement_input_codec.gd")
 const MovementSnapshotCodecScript = preload("res://scripts/shared/movement_snapshot_codec.gd")
+const EntityLifecycleCodecScript = preload("res://scripts/shared/entity_lifecycle_codec.gd")
 
-signal local_entity_id_received(entity_id: int)
 signal movement_snapshot_received(entities: Array[Dictionary])
+signal entity_lifecycle_received(entities_spawned: Array[Dictionary], entities_despawned: Array[Dictionary], controlled_entity_id: int)
 
 const DEFAULT_SERVER_HOST := "127.0.0.1"
 const DEFAULT_SERVER_PORT := 4242
 const CHANNEL_MOVEMENT := 0
 const CHANNEL_MOVEMENT_SNAPSHOT := 1
-const CHANNEL_IDENTITY := 2
+const CHANNEL_ENTITY_LIFECYCLE := 2
 const CHANNEL_COUNT := 3
 
 var _connection: ENetConnection
@@ -22,6 +23,9 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	poll()
+
+func _exit_tree() -> void:
+	disconnect_from_server()
 
 func connect_to_server(host := DEFAULT_SERVER_HOST, port := DEFAULT_SERVER_PORT) -> Error:
 	if _server_peer != null and _server_peer.get_state() != ENetPacketPeer.STATE_DISCONNECTED:
@@ -54,6 +58,14 @@ func send_player_input(input: Dictionary, previous_frame = null) -> Error:
 	var bytes := MovementInputCodecScript.encode_packet(input, previous_frame)
 	return _server_peer.send(CHANNEL_MOVEMENT, bytes, ENetPacketPeer.FLAG_UNSEQUENCED)
 
+func disconnect_from_server() -> void:
+	if _server_peer != null and _server_peer.get_state() == ENetPacketPeer.STATE_CONNECTED:
+		_server_peer.peer_disconnect()
+		if _connection != null:
+			_connection.flush()
+
+	_disconnect()
+
 func poll() -> void:
 	if _connection == null:
 		return
@@ -79,8 +91,8 @@ func poll() -> void:
 				var channel: int = event[3]
 				if channel == CHANNEL_MOVEMENT_SNAPSHOT:
 					_receive_movement_snapshot(peer.get_packet())
-				elif channel == CHANNEL_IDENTITY:
-					_receive_local_entity_id(peer.get_packet())
+				elif channel == CHANNEL_ENTITY_LIFECYCLE:
+					_receive_entity_lifecycle(peer.get_packet())
 				else:
 					peer.get_packet()
 
@@ -97,16 +109,17 @@ func _receive_movement_snapshot(bytes: PackedByteArray) -> void:
 
 	movement_snapshot_received.emit(entities)
 
-func _receive_local_entity_id(bytes: PackedByteArray) -> void:
-	if bytes.size() < 4:
+func _receive_entity_lifecycle(bytes: PackedByteArray) -> void:
+	var lifecycle := EntityLifecycleCodecScript.decode_packet(bytes)
+	var entities_spawned: Array[Dictionary] = lifecycle["entities_spawned"]
+	var entities_despawned: Array[Dictionary] = lifecycle["entities_despawned"]
+	var controlled_entity_id := int(lifecycle["controlled_entity_id"])
+
+	if (
+		entities_spawned.is_empty()
+		and entities_despawned.is_empty()
+		and controlled_entity_id == EntityLifecycleCodecScript.NO_ENTITY_ID
+	):
 		return
 
-	local_entity_id_received.emit(_read_u32(bytes, 0))
-
-func _read_u32(bytes: PackedByteArray, offset: int) -> int:
-	return (
-		bytes[offset]
-		| (bytes[offset + 1] << 8)
-		| (bytes[offset + 2] << 16)
-		| (bytes[offset + 3] << 24)
-	)
+	entity_lifecycle_received.emit(entities_spawned, entities_despawned, controlled_entity_id)

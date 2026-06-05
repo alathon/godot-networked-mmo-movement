@@ -10,12 +10,16 @@ const BIND_ADDRESS := "0.0.0.0"
 const PORT := 4242
 const CHANNEL_MOVEMENT := 0
 const CHANNEL_MOVEMENT_SNAPSHOT := 1
-const CHANNEL_IDENTITY := 2
+const CHANNEL_ENTITY_LIFECYCLE := 2
 const MAX_PEERS := 32
 const CHANNEL_COUNT := 3
 
 var _connection := ENetConnection.new()
 var _peer_ids: Dictionary = {}
+var _peer_ids_by_instance_id: Dictionary = {}
+var _peer_keys_by_id: Dictionary = {}
+var _peer_addresses_by_id: Dictionary = {}
+var _peer_ports_by_id: Dictionary = {}
 var _peers_by_id: Dictionary = {}
 var _next_peer_id := 1
 var _is_listening := false
@@ -34,6 +38,7 @@ func _process(_delta: float) -> void:
 		return
 
 	_poll_network()
+	_cleanup_disconnected_peers()
 
 func _poll_network() -> void:
 	while true:
@@ -54,11 +59,7 @@ func _poll_network() -> void:
 				print("Client connected: peer=%d %s:%d" % [peer_id, peer.get_remote_address(), peer.get_remote_port()])
 				player_connected.emit(peer_id)
 			ENetConnection.EVENT_DISCONNECT:
-				var peer_id := _get_peer_id(peer)
-				print("Client disconnected: peer=%d %s:%d" % [peer_id, peer.get_remote_address(), peer.get_remote_port()])
-				_peer_ids.erase(_peer_key(peer))
-				_peers_by_id.erase(peer_id)
-				player_disconnected.emit(peer_id)
+				_disconnect_peer(peer)
 			ENetConnection.EVENT_RECEIVE:
 				if event[3] == CHANNEL_MOVEMENT:
 					_receive_movement_input(peer)
@@ -88,11 +89,51 @@ func _receive_movement_input_frame(peer_id: int, input: Dictionary) -> void:
 		]
 	)
 
+func _cleanup_disconnected_peers() -> void:
+	var peer_ids := _peers_by_id.keys()
+	for peer_id in peer_ids:
+		var peer := _peers_by_id.get(peer_id) as ENetPacketPeer
+		if peer == null or peer.get_state() == ENetPacketPeer.STATE_DISCONNECTED:
+			_disconnect_peer(peer, int(peer_id))
+
+func _disconnect_peer(peer: ENetPacketPeer, known_peer_id := -1) -> void:
+	var peer_id := known_peer_id
+	if peer_id == -1 and peer != null:
+		peer_id = _get_peer_id(peer)
+
+	var address := "<unknown>"
+	var port := -1
+	var peer_key := ""
+	if peer_id != -1:
+		address = str(_peer_addresses_by_id.get(peer_id, address))
+		port = int(_peer_ports_by_id.get(peer_id, port))
+		peer_key = str(_peer_keys_by_id.get(peer_id, ""))
+
+	if peer != null:
+		_peer_ids_by_instance_id.erase(peer.get_instance_id())
+	if not peer_key.is_empty():
+		_peer_ids.erase(peer_key)
+
+	if peer_id == -1:
+		push_warning("Disconnected unknown client %s:%d" % [address, port])
+		return
+
+	_peers_by_id.erase(peer_id)
+	_peer_keys_by_id.erase(peer_id)
+	_peer_addresses_by_id.erase(peer_id)
+	_peer_ports_by_id.erase(peer_id)
+	player_disconnected.emit(peer_id)
+	print("Client disconnected: peer=%d %s:%d" % [peer_id, address, port])
+
 func _assign_peer_id(peer: ENetPacketPeer) -> int:
 	var key := _peer_key(peer)
 	var peer_id := _next_peer_id
 	_next_peer_id += 1
 	_peer_ids[key] = peer_id
+	_peer_ids_by_instance_id[peer.get_instance_id()] = peer_id
+	_peer_keys_by_id[peer_id] = key
+	_peer_addresses_by_id[peer_id] = peer.get_remote_address()
+	_peer_ports_by_id[peer_id] = peer.get_remote_port()
 	_peers_by_id[peer_id] = peer
 	return peer_id
 
@@ -105,26 +146,31 @@ func broadcast_movement_snapshot(bytes: PackedByteArray) -> void:
 			continue
 		packet_peer.send(CHANNEL_MOVEMENT_SNAPSHOT, bytes, ENetPacketPeer.FLAG_UNSEQUENCED)
 
-func send_local_entity_id(peer_id: int, entity_id: int) -> Error:
+func send_entity_lifecycle(peer_id: int, bytes: PackedByteArray) -> Error:
 	var peer := _peers_by_id.get(peer_id) as ENetPacketPeer
 	if peer == null:
 		return ERR_DOES_NOT_EXIST
 	if peer.get_state() != ENetPacketPeer.STATE_CONNECTED:
 		return ERR_CONNECTION_ERROR
 
-	var bytes := PackedByteArray()
-	bytes.resize(4)
-	_write_u32(bytes, 0, entity_id)
-	return peer.send(CHANNEL_IDENTITY, bytes, ENetPacketPeer.FLAG_RELIABLE)
+	return peer.send(CHANNEL_ENTITY_LIFECYCLE, bytes, ENetPacketPeer.FLAG_RELIABLE)
+
+func broadcast_entity_lifecycle(bytes: PackedByteArray, excluded_peer_ids: Array[int] = []) -> void:
+	for peer_id in _peers_by_id:
+		if excluded_peer_ids.has(int(peer_id)):
+			continue
+		send_entity_lifecycle(int(peer_id), bytes)
 
 func _get_peer_id(peer: ENetPacketPeer) -> int:
-	return int(_peer_ids.get(_peer_key(peer), -1))
+	var instance_id := peer.get_instance_id()
+	if _peer_ids_by_instance_id.has(instance_id):
+		return int(_peer_ids_by_instance_id[instance_id])
+
+	for peer_id in _peers_by_id:
+		if _peers_by_id[peer_id] == peer:
+			return int(peer_id)
+
+	return -1
 
 func _peer_key(peer: ENetPacketPeer) -> String:
 	return "%s:%d" % [peer.get_remote_address(), peer.get_remote_port()]
-
-func _write_u32(bytes: PackedByteArray, offset: int, value: int) -> void:
-	bytes[offset] = value & 0xFF
-	bytes[offset + 1] = (value >> 8) & 0xFF
-	bytes[offset + 2] = (value >> 16) & 0xFF
-	bytes[offset + 3] = (value >> 24) & 0xFF

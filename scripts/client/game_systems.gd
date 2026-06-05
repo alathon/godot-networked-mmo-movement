@@ -25,9 +25,11 @@ func send_input_to_server(input: Dictionary, player_input: PlayerInput) -> void:
 func _on_movement_snapshot_received(snapshot_entities: Array[Dictionary]) -> void:
 	for snapshot in snapshot_entities:
 		var entity_id := int(snapshot["entity_id"])
+
 		if entity_id != player_spawner.local_entity_id:
-			var remote := player_spawner.ensure_remote_player(entity_id)
-			remote.push_movement_snapshot(snapshot)
+			var remote := player_spawner.get_player(entity_id) as RemoteEntity
+			if remote != null:
+				remote.push_movement_snapshot(snapshot)
 			continue
 
 		var seq := int(snapshot["last_processed_movement_seq"])

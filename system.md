@@ -229,15 +229,49 @@ rotation: smallest-three quantized quaternion
 
 ---
 
+# Entity Lifecycle
+
+Entity lifecycle is authoritative and reliable.
+
+The server sends batched lifecycle packets over a reliable ENet channel:
+
+```text
+controlled_entity_id optional
+entities_spawned[]
+entities_despawned[]
+```
+
+Spawn records include:
+
+```text
+entity_id
+entity_kind
+initial position
+initial rotation
+```
+
+Despawn records include:
+
+```text
+entity_id
+reason optional
+```
+
+Movement snapshots do not create or remove entities. They only update entities that already exist on the client.
+
+---
+
 # Remote Player Movement
 
 Remote players are not predicted.
 
-Clients should interpolate remote players between authoritative snapshots.
+Clients spawn and despawn remote players from authoritative lifecycle messages.
+
+Clients interpolate remote players between authoritative movement snapshots.
 
 Optional short-duration extrapolation may be used when updates are temporarily missing.
 
-Remote player spawning, removal, interpolation, and extrapolation are not implemented yet.
+Remote player extrapolation is not implemented yet.
 
 ---
 
@@ -293,10 +327,8 @@ This keeps the server simple, deterministic, and scalable.
 
 # Current Missing Pieces
 
-- Real client identity/entity-id assignment.
 - Client reconciliation beyond debug diff logging.
-- Remote player spawn/update/remove.
-- Remote interpolation and optional extrapolation.
+- Remote optional extrapolation.
 - Full authoritative movement state if movement grows beyond position/velocity/rotation/grounded.
 - Ability transport, anchoring, validation, and combat snapshots.
 - Snapshot interest management and per-client filtering.

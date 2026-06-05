@@ -67,6 +67,20 @@ flags
 
 Position is quantized to millimeters. Velocity is quantized to centimeters per second. Rotation uses a smallest-three quantized quaternion. The current entity record is 34 bytes, plus a 4-byte packet header.
 
+#### `scripts/shared/entity_lifecycle_codec.gd`
+
+Server-to-client entity lifecycle uses a hand-written binary codec on a reliable channel.
+
+Each lifecycle packet contains:
+
+```text
+controlled_entity_id optional
+entities_spawned[]
+entities_despawned[]
+```
+
+Spawn records contain entity id, entity kind, initial position, and initial rotation. Despawn records contain entity id and an optional reason.
+
 ### Client
 
 #### `scripts/client/client_scene.tscn`
@@ -100,7 +114,7 @@ send current + previous input to server
 
 It also listens for movement snapshots and currently logs prediction drift only. It does not reconcile yet.
 
-The local entity id is currently assumed to be `1`, matching the first server peer id. This is temporary.
+Movement snapshots only update entities that already exist from authoritative lifecycle messages.
 
 #### `scripts/client/player_input.gd`
 
@@ -133,14 +147,23 @@ The predicted position is used for manual drift logging when an authoritative se
 
 `API` is a normal node instance under `GameSystems`.
 
-It owns the ENet client connection and has two channels:
+It owns the ENet client connection and has three channels:
 
 ```text
 channel 0: movement input to server
 channel 1: movement snapshots from server
+channel 2: entity lifecycle from server
 ```
 
-It sends movement input packets using the binary movement input codec and emits `movement_snapshot_received` after decoding binary movement snapshots.
+It sends movement input packets using the binary movement input codec. It emits `movement_snapshot_received` after decoding binary movement snapshots and `entity_lifecycle_received` after decoding reliable lifecycle packets.
+
+#### `scripts/client/player_spawner.gd`
+
+`ClientPlayerSpawner` owns client-side entity lifetime.
+
+The local player and remote players are spawned from authoritative lifecycle spawn records. The optional `controlled_entity_id` marks which spawned entity is the local player.
+
+Lifecycle despawn records remove matching local or remote entities.
 
 #### `scripts/client/smoothed_movement.gd`
 
@@ -148,7 +171,11 @@ Smooths the visual model between fixed movement ticks by listening directly to `
 
 #### `scripts/client/remote_entity.gd`
 
-Currently a placeholder. Remote interpolation is not implemented yet.
+Remote entities receive movement snapshots from `GameSystems` and push them into `RemoteInterpolationBuffer`.
+
+#### `scripts/client/remote_interpolation_buffer.gd`
+
+Buffers remote movement snapshots and interpolates position/rotation with a short render delay. It does not extrapolate yet.
 
 ### Server
 
@@ -202,6 +229,14 @@ scripts/server/server_player_entity.tscn
 ```
 
 On disconnect, it removes the corresponding server player.
+
+It sends authoritative lifecycle packets:
+
+```text
+new client: controlled_entity_id + spawn records for all current players
+existing clients: spawn record for the newly connected player
+remaining clients: despawn record for a disconnected player
+```
 
 It exposes:
 
@@ -321,26 +356,13 @@ prints the position diff when diff >= 0.01m
 
 `system.md` says remote players interpolate between authoritative snapshots.
 
-Current implementation does not spawn/update/interpolate remote players yet.
+Current implementation spawns and despawns remote players from reliable lifecycle messages, and interpolates their movement snapshots. Optional extrapolation is not implemented yet.
 
 ### Abilities
 
 The ability transport, command ids, movement anchors, and validation rules from `system.md` are not implemented.
 
 ## Missing For The Full System
-
-### Identity And Entity Mapping
-
-The client currently assumes its local entity id is `1`. We need a real mapping from connection/player identity to entity id.
-
-Likely missing pieces:
-
-```text
-server assigns entity id
-client learns its own entity id
-snapshots can distinguish local player vs remote players
-disconnect/removal messages
-```
 
 ### Client Reconciliation
 
@@ -372,14 +394,12 @@ last_processed_movement_seq
 
 ### Snapshot Consumption
 
-Client receives and decodes movement snapshots, but only logs local drift.
+Client receives and decodes movement snapshots, updates known remote players, and logs local prediction drift.
 
 Needed:
 
 ```text
 local-player reconciliation
-remote-player spawn/update/remove
-remote interpolation buffers
 optional short extrapolation
 ```
 
