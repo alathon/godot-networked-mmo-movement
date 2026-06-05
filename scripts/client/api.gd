@@ -1,10 +1,6 @@
 class_name API
 extends Node
 
-const MovementInputCodecScript = preload("res://scripts/shared/movement_input_codec.gd")
-const MovementSnapshotCodecScript = preload("res://scripts/shared/movement_snapshot_codec.gd")
-const EntityLifecycleCodecScript = preload("res://scripts/shared/entity_lifecycle_codec.gd")
-
 signal movement_snapshot_received(entities: Array[Dictionary])
 signal entity_lifecycle_received(entities_spawned: Array[Dictionary], entities_despawned: Array[Dictionary], controlled_entity_id: int)
 
@@ -55,7 +51,7 @@ func send_player_input(input: Dictionary, previous_frame = null) -> Error:
 	if _server_peer.get_state() != ENetPacketPeer.STATE_CONNECTED:
 		return ERR_BUSY
 
-	var bytes := MovementInputCodecScript.encode_packet(input, previous_frame)
+	var bytes := MovementInputCodec.encode_packet(input, previous_frame)
 	return _server_peer.send(CHANNEL_MOVEMENT, bytes, ENetPacketPeer.FLAG_UNSEQUENCED)
 
 func disconnect_from_server() -> void:
@@ -103,14 +99,14 @@ func _disconnect() -> void:
 	_server_peer = null
 
 func _receive_movement_snapshot(bytes: PackedByteArray) -> void:
-	var entities := MovementSnapshotCodecScript.decode_packet(bytes)
+	var entities := MovementSnapshotCodec.decode_packet(bytes)
 	if entities.is_empty():
 		return
 
 	movement_snapshot_received.emit(entities)
 
 func _receive_entity_lifecycle(bytes: PackedByteArray) -> void:
-	var lifecycle := EntityLifecycleCodecScript.decode_packet(bytes)
+	var lifecycle := EntityLifecycleCodec.decode_packet(bytes)
 	var entities_spawned: Array[Dictionary] = lifecycle["entities_spawned"]
 	var entities_despawned: Array[Dictionary] = lifecycle["entities_despawned"]
 	var controlled_entity_id := int(lifecycle["controlled_entity_id"])
@@ -118,7 +114,7 @@ func _receive_entity_lifecycle(bytes: PackedByteArray) -> void:
 	if (
 		entities_spawned.is_empty()
 		and entities_despawned.is_empty()
-		and controlled_entity_id == EntityLifecycleCodecScript.NO_ENTITY_ID
+		and controlled_entity_id == EntityLifecycleCodec.NO_ENTITY_ID
 	):
 		return
 

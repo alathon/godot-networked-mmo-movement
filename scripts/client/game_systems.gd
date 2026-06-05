@@ -2,7 +2,7 @@ extends Node
 
 @onready var ticker: Ticker = %Ticker
 @onready var api: API = $API
-@onready var player_spawner: ClientPlayerSpawner = $PlayerSpawner
+@onready var player_spawner: EntitySpawner = $EntitySpawner
 
 func _ready() -> void:
 	ticker.tick.connect(_on_tick)
