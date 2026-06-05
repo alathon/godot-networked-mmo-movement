@@ -14,10 +14,11 @@
 script = ExtResource("1_rlois")
 metadata/_custom_type_script = "uid://ccv0ed6eium8m"
 
-[node name="PlayerInput" type="Node" parent="." unique_id=339430634 node_paths=PackedStringArray("body", "model")]
+[node name="PlayerInput" type="Node" parent="." unique_id=339430634 node_paths=PackedStringArray("body", "model", "camera_pivot")]
 script = ExtResource("2_mxrka")
 body = NodePath("../PhysicsBody")
 model = NodePath("../Model")
+camera_pivot = NodePath("../CameraPivot")
 
 [node name="SmoothedMovement" type="Node" parent="." unique_id=1434171790 node_paths=PackedStringArray("model", "body")]
 script = ExtResource("3_mu7t1")

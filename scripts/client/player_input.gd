@@ -17,20 +17,16 @@ func record_input(player: Player) -> Dictionary:
 	_prediction_frame = _prediction_buffer.store(frame)
 	return frame
 
-func send_input_to_server(input: Dictionary) -> void:
+func flush_prediction_frame() -> Variant:
 	if _prediction_frame == null:
-		return
+		return null
 
 	_prediction_frame.write_predicted_state(body)
-
-	var api := _get_api()
-	if api != null:
-		var previous_frame: Variant = _prediction_buffer.get_previous_frame(_prediction_frame.seq)
-		api.send_player_input(input, previous_frame)
-
+	var previous_frame: Variant = _prediction_buffer.get_previous_frame(_prediction_frame.seq)
 	_prediction_frame = null
+	return previous_frame
 
-func get_predicted_position(seq: int) -> Vector3:
+func get_predicted_position(seq: int) -> Variant:
 	return _prediction_buffer.get_predicted_position(seq)
 
 func gather() -> Dictionary:

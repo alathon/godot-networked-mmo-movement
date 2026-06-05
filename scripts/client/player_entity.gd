@@ -15,7 +15,7 @@ func is_alive():
 func get_body():
 	return body
 
-func get_player_input() -> Variant:
+func get_player_input() -> PlayerInput:
 	return input
 
 func gather_input() -> Dictionary:

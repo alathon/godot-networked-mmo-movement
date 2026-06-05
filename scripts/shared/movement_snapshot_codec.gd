@@ -1,8 +1,8 @@
 class_name MovementSnapshotCodec
 extends RefCounted
 
-const VERSION := 1
-const HEADER_SIZE := 4
+const VERSION := 2
+const HEADER_SIZE := 8
 const ENTITY_SIZE := 34
 
 const FLAG_ON_FLOOR := 1
@@ -13,7 +13,7 @@ const QUAT_COMPONENT_LIMIT := 0.7071067811865476
 const QUAT_SCALE := 32767.0 / QUAT_COMPONENT_LIMIT
 const NO_PROCESSED_SEQ := 0xFFFFFFFF
 
-static func encode_packet(entities: Array) -> PackedByteArray:
+static func encode_packet(entities: Array, server_tick: int = 0) -> PackedByteArray:
 	var count := mini(entities.size(), 0xFFFF)
 	var bytes := PackedByteArray()
 	bytes.resize(HEADER_SIZE + count * ENTITY_SIZE)
@@ -22,6 +22,7 @@ static func encode_packet(entities: Array) -> PackedByteArray:
 	offset = _write_u8(bytes, offset, VERSION)
 	offset = _write_u8(bytes, offset, 0)
 	offset = _write_u16(bytes, offset, count)
+	offset = _write_u32(bytes, offset, server_tick)
 
 	for i in count:
 		var entity: Dictionary = entities[i]
@@ -56,6 +57,8 @@ static func decode_packet(bytes: PackedByteArray) -> Array[Dictionary]:
 	offset += 1 # reserved flags
 	var count := _read_u16(bytes, offset)
 	offset += 2
+	var server_tick := _read_u32(bytes, offset)
+	offset += 4
 
 	if bytes.size() < HEADER_SIZE + count * ENTITY_SIZE:
 		return []
@@ -91,6 +94,7 @@ static func decode_packet(bytes: PackedByteArray) -> Array[Dictionary]:
 
 		entities[i] = {
 			"entity_id": entity_id,
+			"server_tick": server_tick,
 			"last_processed_movement_seq": last_processed_seq,
 			"position": _dequantize_position(position),
 			"velocity": _dequantize_velocity(velocity),

@@ -12,11 +12,11 @@ var _tick_context: Dictionary[int, Dictionary] = {}
 func _ready() -> void:
 	ticker.tick.connect(_on_tick)
 
-func _on_tick(_n: int, delta: float) -> void:
+func _on_tick(n: int, delta: float) -> void:
 	_gather_player_inputs()
 	_apply_player_movement(delta)
 	_apply_other_systems(delta)
-	_broadcast_movement_snapshot()
+	_broadcast_movement_snapshot(n)
 
 func _gather_player_inputs() -> void:
 	_tick_context.clear()
@@ -36,7 +36,7 @@ func _apply_player_movement(delta: float) -> void:
 func _apply_other_systems(_delta: float) -> void:
 	pass
 
-func _broadcast_movement_snapshot() -> void:
+func _broadcast_movement_snapshot(server_tick: int) -> void:
 	var entities: Array[Dictionary] = []
 
 	var players: Dictionary = player_spawner.get_players()
@@ -55,4 +55,4 @@ func _broadcast_movement_snapshot() -> void:
 	if entities.is_empty():
 		return
 
-	server_network.broadcast_movement_snapshot(MovementSnapshotCodecScript.encode_packet(entities))
+	server_network.broadcast_movement_snapshot(MovementSnapshotCodecScript.encode_packet(entities, server_tick))

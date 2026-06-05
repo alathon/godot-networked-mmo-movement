@@ -13,24 +13,30 @@ func _on_tick(_n: int, delta: float) -> void:
 	if player == null:
 		return
 
-	var input: Dictionary = player.get_player_input().record_input(player)
+	var player_input: PlayerInput = player.get_player_input()
+	var input: Dictionary = player_input.record_input(player)
 	player.simulate(input, delta)
 	_apply_remote_entities_movement(delta)
-	player.get_player_input().send_input_to_server(input)
+	send_input_to_server(input, player_input)
 
 func _apply_remote_entities_movement(delta: float):
-	for entity in player_spawner.entities:
+	for entity in player_spawner.get_players().values():
 		if entity is not RemoteEntity:
 			continue
 		
 		var rentity: RemoteEntity = entity
-		rentity.simulate(delta) # TODO: Remote interpolation somehow???
+		rentity.simulate(delta)
+
+func send_input_to_server(input: Dictionary, player_input: PlayerInput) -> void:
+	var previous_frame: Variant = player_input.flush_prediction_frame()
+	api.send_player_input(input, previous_frame)
 
 func _on_movement_snapshot_received(snapshot_entities: Array[Dictionary]) -> void:
 	for snapshot in snapshot_entities:
 		var entity_id := int(snapshot["entity_id"])
 		if entity_id != player_spawner.local_entity_id:
-			player_spawner.ensure_remote_player(entity_id)
+			var remote := player_spawner.ensure_remote_player(entity_id)
+			remote.push_movement_snapshot(snapshot)
 			continue
 
 		var seq := int(snapshot["last_processed_movement_seq"])
@@ -42,7 +48,7 @@ func _on_movement_snapshot_received(snapshot_entities: Array[Dictionary]) -> voi
 			continue
 
 		var player_input: PlayerInput = player.get_player_input()
-		var predicted_position: Vector3 = player_input.get_predicted_position(seq)
+		var predicted_position: Variant = player_input.get_predicted_position(seq)
 		if predicted_position == null:
 			print("snapshot seq=%d no local prediction frame" % seq)
 			continue

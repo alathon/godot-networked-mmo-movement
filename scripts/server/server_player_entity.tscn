@@ -11,15 +11,16 @@
 script = ExtResource("1_dnu26")
 
 [node name="Body" type="CharacterBody3D" parent="." unique_id=2084136788]
+collision_mask = 2
 script = ExtResource("1_m4u6d")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Body" unique_id=1723625779]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 shape = SubResource("CapsuleShape3D_l2lw7")
 
-[node name="Model" type="Node3D" parent="." unique_id=870417014]
+[node name="Model" type="Node3D" parent="Body" unique_id=870417014]
 unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 
-[node name="Mesh" type="MeshInstance3D" parent="Model" unique_id=2130454875]
+[node name="Mesh" type="MeshInstance3D" parent="Body/Model" unique_id=2130454875]
 mesh = SubResource("CapsuleMesh_l2lw7")

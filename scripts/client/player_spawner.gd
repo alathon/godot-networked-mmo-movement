@@ -10,7 +10,7 @@ const SPAWN_POSITION := Vector3(-39.976143, 0.7148186, -40.79889)
 
 var local_entity_id := -1
 var _local_player: Player
-var _players_by_entity_id: Dictionary = {}
+var _players_by_entity_id: Dictionary[int, BaseEntity] = {}
 
 func _ready() -> void:
 	api.local_entity_id_received.connect(_on_local_entity_id_received)
@@ -19,7 +19,7 @@ func get_local_player() -> Player:
 	return _local_player
 
 func get_player(entity_id: int) -> BaseEntity:
-	return _players_by_entity_id.get(entity_id) as BaseEntity
+	return _players_by_entity_id.get(entity_id)
 
 func get_players() -> Dictionary:
 	return _players_by_entity_id
@@ -28,11 +28,11 @@ func ensure_remote_player(entity_id: int) -> RemoteEntity:
 	if entity_id == local_entity_id:
 		return null
 
-	var existing := _players_by_entity_id.get(entity_id) as RemoteEntity
+	var existing = _players_by_entity_id.get(entity_id)
 	if existing != null:
 		return existing
 
-	var remote := REMOTE_ENTITY.instantiate() as RemoteEntity
+	var remote: RemoteEntity = REMOTE_ENTITY.instantiate()
 	remote.name = "Remote_%d" % entity_id
 	remote.entity_id = entity_id
 
@@ -48,7 +48,7 @@ func _on_local_entity_id_received(entity_id: int) -> void:
 
 	local_entity_id = entity_id
 
-	var player := PLAYER_ENTITY.instantiate() as Player
+	var player: Player = PLAYER_ENTITY.instantiate()
 	player.name = "PlayerEntity"
 	player.entity_id = entity_id
 
