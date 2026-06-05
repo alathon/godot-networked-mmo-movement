@@ -45,6 +45,12 @@ func get_next_input(peer_id: int) -> Dictionary:
 	peer_buffer.last_held_input = synthetic
 	return synthetic
 
+func get_last_processed_seq(peer_id: int) -> int:
+	var peer_buffer := _get_peer_buffer(peer_id)
+	if peer_buffer == null:
+		return -1
+	return peer_buffer.last_processed_seq
+
 func _on_player_input_received(peer_id: int, input: Dictionary) -> void:
 	var peer_buffer := _get_peer_buffer(peer_id)
 	if peer_buffer == null:

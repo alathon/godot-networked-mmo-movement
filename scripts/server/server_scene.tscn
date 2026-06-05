@@ -6,7 +6,7 @@
 [ext_resource type="Script" uid="uid://1dw21ukwu4vs" path="res://scripts/server/server_network.gd" id="4_ltp1w"]
 [ext_resource type="Script" uid="uid://78yuijk5ovty" path="res://scripts/server/player_spawner.gd" id="5_x5607"]
 [ext_resource type="Script" uid="uid://dh1cfhwqu5vnb" path="res://scripts/server/player_input_handler.gd" id="6_ltp1w"]
-[ext_resource type="Script" path="res://scripts/server/server_game_systems.gd" id="7_x5607"]
+[ext_resource type="Script" uid="uid://d0yoksrs3f6od" path="res://scripts/server/server_game_systems.gd" id="7_x5607"]
 
 [sub_resource type="Terrain3DMaterial" id="Terrain3DMaterial_u3cyc"]
 _shader_parameters = {
@@ -53,7 +53,7 @@ texture_list = Array[Terrain3DTextureAsset]([SubResource("Terrain3DTextureAsset_
 
 [sub_resource type="Environment" id="Environment_m7jmp"]
 
-[node name="Node3D2" type="Node3D" unique_id=1238542963]
+[node name="Zone" type="Node3D" unique_id=1238542963]
 
 [node name="Terrain3D" type="Terrain3D" parent="." unique_id=327729889]
 data_directory = "res://data"

@@ -801,4 +801,72 @@ class MovementInput:
 			return PB_ERR.PARSE_INCOMPLETE
 		return result
 	
+class MovementInputPacket:
+	extends RefCounted
+	func _init():
+		var service
+		
+		__current_input = PBField.new("current_input", PB_DATA_TYPE.MESSAGE, PB_RULE.OPTIONAL, 1, true, DEFAULT_VALUES_3[PB_DATA_TYPE.MESSAGE])
+		service = PBServiceField.new()
+		service.field = __current_input
+		service.func_ref = Callable(self, "new_current_input")
+		data[__current_input.tag] = service
+		
+		__previous_input = PBField.new("previous_input", PB_DATA_TYPE.MESSAGE, PB_RULE.OPTIONAL, 2, true, DEFAULT_VALUES_3[PB_DATA_TYPE.MESSAGE])
+		service = PBServiceField.new()
+		service.field = __previous_input
+		service.func_ref = Callable(self, "new_previous_input")
+		data[__previous_input.tag] = service
+		
+	var data = {}
+	
+	var __current_input: PBField
+	func has_current_input() -> bool:
+		if __current_input.value != null:
+			return true
+		return false
+	func get_current_input() -> MovementInput:
+		return __current_input.value
+	func clear_current_input() -> void:
+		data[1].state = PB_SERVICE_STATE.UNFILLED
+		__current_input.value = DEFAULT_VALUES_3[PB_DATA_TYPE.MESSAGE]
+	func new_current_input() -> MovementInput:
+		__current_input.value = MovementInput.new()
+		return __current_input.value
+	
+	var __previous_input: PBField
+	func has_previous_input() -> bool:
+		if __previous_input.value != null:
+			return true
+		return false
+	func get_previous_input() -> MovementInput:
+		return __previous_input.value
+	func clear_previous_input() -> void:
+		data[2].state = PB_SERVICE_STATE.UNFILLED
+		__previous_input.value = DEFAULT_VALUES_3[PB_DATA_TYPE.MESSAGE]
+	func new_previous_input() -> MovementInput:
+		__previous_input.value = MovementInput.new()
+		return __previous_input.value
+	
+	func _to_string() -> String:
+		return PBPacker.message_to_string(data)
+		
+	func to_bytes() -> PackedByteArray:
+		return PBPacker.pack_message(data)
+		
+	func from_bytes(bytes : PackedByteArray, offset : int = 0, limit : int = -1) -> int:
+		var cur_limit = bytes.size()
+		if limit != -1:
+			cur_limit = limit
+		var result = PBPacker.unpack_message(data, bytes, offset, cur_limit)
+		if result == cur_limit:
+			if PBPacker.check_required(data):
+				if limit == -1:
+					return PB_ERR.NO_ERRORS
+			else:
+				return PB_ERR.REQUIRED_FIELDS
+		elif limit == -1 && result > 0:
+			return PB_ERR.PARSE_INCOMPLETE
+		return result
+	
 ################ USER DATA END #################

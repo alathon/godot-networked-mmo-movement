@@ -6,7 +6,8 @@ const MovementProto = preload("res://scripts/shared/movement_pb.gd")
 const DEFAULT_SERVER_HOST := "127.0.0.1"
 const DEFAULT_SERVER_PORT := 4242
 const CHANNEL_MOVEMENT := 0
-const CHANNEL_COUNT := 1
+const CHANNEL_MOVEMENT_SNAPSHOT := 1
+const CHANNEL_COUNT := 2
 
 static var _connection: ENetConnection
 static var _server_peer: ENetPacketPeer
@@ -36,7 +37,7 @@ static func connect_to_server(host := DEFAULT_SERVER_HOST, port := DEFAULT_SERVE
 
 	return OK
 
-static func send_player_input(input: Dictionary) -> Error:
+static func send_player_input(input: Dictionary, previous_frame = null) -> Error:
 	var err := connect_to_server()
 	if err != OK:
 		return err
@@ -45,14 +46,19 @@ static func send_player_input(input: Dictionary) -> Error:
 	if _server_peer.get_state() != ENetPacketPeer.STATE_CONNECTED:
 		return ERR_BUSY
 
-	var message := MovementProto.MovementInput.new()
+	var message := MovementProto.MovementInputPacket.new()
+	if previous_frame != null:
+		previous_frame.write_to_message(message.new_previous_input())
+	_write_input_to_message(input, message.new_current_input())
+
+	return _server_peer.send(CHANNEL_MOVEMENT, message.to_bytes(), ENetPacketPeer.FLAG_UNSEQUENCED)
+
+static func _write_input_to_message(input: Dictionary, message) -> void:
 	message.set_seq(int(input.get("seq", 0)))
 	message.set_input_x(float(input.get("input_x", 0.0)))
 	message.set_input_z(float(input.get("input_z", 0.0)))
 	message.set_jump_pressed(bool(input.get("jump_pressed", false)))
 	message.set_jump_down(bool(input.get("jump_down", false)))
-
-	return _server_peer.send(CHANNEL_MOVEMENT, message.to_bytes(), ENetPacketPeer.FLAG_UNSEQUENCED)
 
 static func poll() -> void:
 	if _connection == null:

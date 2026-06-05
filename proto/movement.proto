@@ -7,3 +7,8 @@ message MovementInput {
 	bool jump_pressed = 4;
 	bool jump_down = 5;
 }
+
+message MovementInputPacket {
+	MovementInput current_input = 1;
+	MovementInput previous_input = 2;
+}

@@ -15,6 +15,9 @@ func _ready() -> void:
 func get_player(peer_id: int) -> PhysicsBody:
 	return _players_by_peer_id.get(peer_id) as PhysicsBody
 
+func get_players() -> Dictionary:
+	return _players_by_peer_id
+
 func get_peer_ids() -> Array:
 	return _players_by_peer_id.keys()
 
